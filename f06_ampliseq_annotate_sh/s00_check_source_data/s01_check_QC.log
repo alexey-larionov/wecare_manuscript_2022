@@ -1,0 +1,58 @@
+Job id: 35990814
+Allocated node: cpu-e-20
+Mon  8 Mar 14:09:23 GMT 2021
+
+Job name: s01_check_QC
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/scripts/s00_check_source_data
+
+ ------------------ Job progress ------------------ 
+
+Started s01_check_QC: 08Mar2021_14:09:23
+
+vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s00_source_data/s12_hard_filters/ampliseq_nfe_locID_MAflag_vqsr_hf.vcf
+stats_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s00_source_data/stats
+
+Compressing ...
+Indexing ...
+Extracting header ...
+
+Variant counts:
+
+Number of samples: 739
+Number of SNPs:    11337
+Number of INDELs:  1638
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   12902
+
+Calculating bcfstats...
+
+Making plots...
+Parsing bcftools stats output: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s00_source_data/stats/ampliseq_nfe_locID_MAflag_vqsr_hf.vchk
+Plotting graphs: python3 plot.py
+Creating PDF: pdflatex summary.tex >plot-vcfstats.log 2>&1
+Finished: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s00_source_data/stats/summary.pdf
+
+--- FILTER ---
+
+   8189 PASS
+   1489 VQSRTrancheSNP97.00to99.00
+   1242 VQSRTrancheSNP99.00to100.00
+    812 DP_LESS_THAN_7390.0
+    531 VQSRTrancheINDEL99.00to100.00
+    385 VQSRTrancheINDEL97.00to99.00
+     82 DP_LESS_THAN_7390.0;VQSRTrancheSNP97.00to99.00
+     51 VQSRTrancheINDEL95.00to97.00
+     47 DP_LESS_THAN_7390.0;VQSRTrancheINDEL97.00to99.00
+     41 DP_LESS_THAN_7390.0;VQSRTrancheSNP99.00to100.00
+     29 DP_LESS_THAN_7390.0;VQSRTrancheINDEL99.00to100.00
+      4 DP_LESS_THAN_7390.0;VQSRTrancheINDEL95.00to97.00
+
+--- DS ---
+
+  12902 .
+
+Done: 08Mar2021_14:09:47
+

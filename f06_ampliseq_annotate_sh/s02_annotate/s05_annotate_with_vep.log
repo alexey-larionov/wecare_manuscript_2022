@@ -1,0 +1,114 @@
+Job id: 35926428
+Allocated node: cpu-e-315
+Fri  5 Mar 19:21:57 GMT 2021
+
+Job name: s05_annotate_with_vep
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/scripts/s02_annotate
+
+ ------------------ Job progress ------------------ 
+
+Started s05_annotate_with_vep: 05Mar2021_19:21:57
+
+--- Settings ---
+
+source_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s02_annotate/ampliseq_nfe_locID_MAflag_vqsr_hf_split_clean_tag_ac_id_clinvar.vcf.gz
+vep_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s02_annotate/ampliseq_nfe_locID_MAflag_vqsr_hf_split_clean_tag_ac_id_clinvar_vep.vcf.gz
+vep_log: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s02_annotate/ampliseq_nfe_locID_MAflag_vqsr_hf_split_clean_tag_ac_id_clinvar_vep.log
+vep_report: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s02_annotate/ampliseq_nfe_locID_MAflag_vqsr_hf_split_clean_tag_ac_id_clinvar_vep.html
+
+n_threads: 8
+
+--- Data sources ---
+
+cache_folder: /rds/project/erf33/rds-erf33-medgen/tools/vep/v101_b37/ensembl-vep/cache
+cache_version: 101
+cache_assembly: GRCh37
+
+b37_fasta: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+
+plugins_folder: /rds/project/erf33/rds-erf33-medgen/tools/vep/v101_b37/ensembl-vep/plugins
+
+CADD annotation files:
+/rds/project/erf33/rds-erf33-medgen/resources/cadd/v1.6_b37/whole_genome_SNVs.tsv.gz
+/rds/project/erf33/rds-erf33-medgen/resources/cadd/v1.6_b37/InDels.tsv.gz
+
+Working...
+
+Added VEP annotations:
+
+0	Allele
+1	Consequence
+2	IMPACT
+3	SYMBOL
+4	Gene
+5	Feature_type
+6	Feature
+7	BIOTYPE
+8	EXON
+9	INTRON
+10	HGVSc
+11	HGVSp
+12	cDNA_position
+13	CDS_position
+14	Protein_position
+15	Amino_acids
+16	Codons
+17	Existing_variation
+18	DISTANCE
+19	STRAND
+20	FLAGS
+21	VARIANT_CLASS
+22	SYMBOL_SOURCE
+23	HGNC_ID
+24	CANONICAL
+25	MANE
+26	TSL
+27	APPRIS
+28	CCDS
+29	ENSP
+30	SWISSPROT
+31	TREMBL
+32	UNIPARC
+33	GENE_PHENO
+34	NEAREST
+35	SIFT
+36	PolyPhen
+37	DOMAINS
+38	miRNA
+39	HGVS_OFFSET
+40	AF
+41	AFR_AF
+42	AMR_AF
+43	EAS_AF
+44	EUR_AF
+45	SAS_AF
+46	AA_AF
+47	EA_AF
+48	gnomAD_AF
+49	gnomAD_AFR_AF
+50	gnomAD_AMR_AF
+51	gnomAD_ASJ_AF
+52	gnomAD_EAS_AF
+53	gnomAD_FIN_AF
+54	gnomAD_NFE_AF
+55	gnomAD_OTH_AF
+56	gnomAD_SAS_AF
+57	MAX_AF
+58	MAX_AF_POPS
+59	CLIN_SIG
+60	SOMATIC
+61	PHENO
+62	PUBMED
+63	VAR_SYNONYMS
+64	MOTIF_NAME
+65	MOTIF_POS
+66	HIGH_INF_POS
+67	MOTIF_SCORE_CHANGE
+68	TRANSCRIPTION_FACTORS
+69	CADD_PHRED
+70	CADD_RAW
+
+Done: 05Mar2021_19:23:36
+

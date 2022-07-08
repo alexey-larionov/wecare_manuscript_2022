@@ -1,0 +1,313 @@
+---
+title: "Ampliseq: remove failed and duplicated samples"
+author: "Alexey Larionov"
+date: "21 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary  
+
+Remove intended duplicates and failed samples detected earlier.  
+
+Removed 6 failed samples:
+
+- 108_S482_L008  
+- 152_S511_L008  
+- 306_S410_L008  
+- 346_S276_L008  
+- 384_S486_L008  
+- 498_S507_L008  
+
+Removed 10 intentional duplicates:  
+Of each duplicted pair, remove the sample with smaller number of reads  
+(see read numbers in Excel file of 14Aug2018)  
+
+- 40_S189_L007  
+- 76_S299_L008  
+- 234_S381_L008  
+- 244_S175_L007  
+- 348_S17_L007  
+- 398_S161_L007  
+- 436_S178_L007  
+- 518_S384_L008  
+- 527_S233_L007  
+- 539_S288_L008  
+
+Keep both samples in this pair: 280_S173_L007 - 281_S185_L007  
+Because this represents the same sample included twice:  
+once as case, and once as control (e-mail from Xiaolin of 29Aug2018)  
+
+Remove both mixed-up samples:  
+
+- 270_S70_L007 - 351_S71_L007  
+
+Keep 386_S273_L008 from previously identified pair  
+
+- 386_S273_L008 - 391_S376_L008  
+
+Because 391_S376_L008 is removed from current version of analysis  
+
+115 non-polymorphic sites removed after the removal of samples.  
+
+Input data: 13,046 vars x 736 samples (266UBC + 272CBC + 198NFFE)  
+Output data: 12,931 vars x 718 samples (259UBC + 261CBC + 198NFFE)  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clean-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s04_select_samples")
+scripts_folder <- file.path(base_folder,"scripts","s04_select_samples")
+setwd(scripts_folder)
+
+```
+
+# Read data
+
+```{r}
+
+# Load data
+load(file.path(base_folder,"data","s03_read_data","s04_add_phenotypes.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s04_select_samples")
+scripts_folder <- file.path(base_folder,"scripts","s04_select_samples")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(ad.mx)
+dim(alt.mx)
+dim(ref.mx)
+
+dim(dp.mx)
+dim(gq.mx)
+
+736-198
+
+dim(meta.df)
+
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(variants.df)
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Make list of samples to remove  
+
+20 samples to remove:  
+
+- 6 failed sequencing  
+- 10 intended duplicates to remove  
+- 2 samples likely mixed-up during pipetting  
+
+```{r}
+
+all_samples <- colnames(gt_add.mx)
+
+failed_sequencing <- c("108_S482_L008", "152_S511_L008", "306_S410_L008",
+                       "346_S276_L008", "384_S486_L008", "498_S507_L008")
+
+intentional_duplicates <- c("40_S189_L007","76_S299_L008","234_S381_L008",
+                            "244_S175_L007","348_S17_L007","398_S161_L007",
+                            "436_S178_L007","518_S384_L008","527_S233_L007",
+                            "539_S288_L008")
+
+unexpected_duplicates <- c("270_S70_L007","351_S71_L007")
+
+excluded_samples <- c(failed_sequencing, 
+                      intentional_duplicates, 
+                      unexpected_duplicates)
+
+retained_samples <- ! all_samples %in% excluded_samples
+
+length(all_samples)
+736-198
+
+length(excluded_samples)
+
+sum(retained_samples)
+718-198
+
+rm(all_samples, excluded_samples, failed_sequencing, 
+   intentional_duplicates, unexpected_duplicates)
+
+```
+
+# Remove duplicated and failed samples  
+
+```{r}
+
+# Remove samples
+
+gt_add.mx <- gt_add.mx[,retained_samples]
+gt_num.mx <- gt_num.mx[,retained_samples]
+gt_chr.mx <- gt_chr.mx[,retained_samples]
+
+ad.mx <- ad.mx[,retained_samples]
+alt.mx <- alt.mx[,retained_samples]
+ref.mx <- ref.mx[,retained_samples]
+
+dp.mx <- dp.mx[,retained_samples]
+gq.mx <- gq.mx[,retained_samples]
+
+phenotypes.df <- phenotypes.df[retained_samples,]
+
+# Check result
+sum(colnames(gt_add.mx) != rownames(phenotypes.df))
+dim(gt_add.mx)
+dim(phenotypes.df)
+
+gt_add.mx[1:5,1:5]
+
+phenotypes.df[1:5,1:5]
+phenotypes.df[714:718,1:5]
+
+table(phenotypes.df$cc)
+table(phenotypes.df$danish)
+table(phenotypes.df[,c("cc","danish")])
+
+# Clean-up
+rm(retained_samples)
+
+```
+
+# Remove non-polymorphic sites  
+
+Remove 109 variants: 13,046 -> 12,937  
+
+```{r}
+
+# Function to detect uniform numeric vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+
+# Make the filter
+uniformity_check <- apply(gt_add.mx,1,uniformity_check.udf)
+summary(as.factor(uniformity_check))
+non_uniform_sites <- uniformity_check == "Non-Uniform"
+
+# Remove non-polymorphic variants
+gt_add.mx <- gt_add.mx[non_uniform_sites,]
+gt_num.mx <- gt_num.mx[non_uniform_sites,]
+gt_chr.mx <- gt_chr.mx[non_uniform_sites,]
+
+ad.mx <- ad.mx[non_uniform_sites,]
+alt.mx <- alt.mx[non_uniform_sites,]
+ref.mx <- ref.mx[non_uniform_sites,]
+
+dp.mx <- dp.mx[non_uniform_sites,]
+gq.mx <- gq.mx[non_uniform_sites,]
+
+variants.df <- variants.df[non_uniform_sites,]
+
+# Check result
+dim(gt_add.mx)
+dim(variants.df)
+
+# Clean-up
+rm(uniformity_check.udf, uniformity_check, non_uniform_sites)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(ad.mx)
+dim(alt.mx)
+dim(ref.mx)
+
+dim(dp.mx)
+dim(gq.mx)
+
+dim(meta.df)
+
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(variants.df)
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder, "s02_remove_failed_and_duplicates.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

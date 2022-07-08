@@ -1,0 +1,36 @@
+Job id: 29670267
+Allocated node: cpu-e-34
+Mon  5 Oct 19:56:18 BST 2020
+
+Job name: s02_remove_dot_alt
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s05_pca
+
+ ------------------ Job progress ------------------ 
+
+Started s01_make_vcf
+Mon  5 Oct 19:56:18 BST 2020
+
+Source vcf counts
+
+Number of samples: 336
+Number of SNPs:    230680
+Number of INDELs:  14012
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   343824
+
+Selecting wecare samples ...
+
+Counts in the vcf file after removal; of sites with dot in ALT
+Number of samples: 336
+Number of SNPs:    230680
+Number of INDELs:  14012
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   244692
+
+Done
+Mon  5 Oct 19:58:51 BST 2020
+

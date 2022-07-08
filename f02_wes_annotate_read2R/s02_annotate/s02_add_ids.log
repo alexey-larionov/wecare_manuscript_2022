@@ -1,0 +1,17 @@
+Job id: 28428040
+Allocated node: cpu-e-154
+Wed  9 Sep 11:37:14 BST 2020
+
+Job name: s02_add_ids
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s02_annotate
+
+ ------------------ Job progress ------------------ 
+
+Started s01_add_ids: 09Sep2020_11:37:14
+
+Adding variant IDs ...
+
+Done: 09Sep2020_11:39:26
+

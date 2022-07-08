@@ -1,0 +1,268 @@
+---
+title: "Ampliseq: BC9 proportion of carriers, WECARE NFFE"
+author: "Alexey Larionov"
+date: "30 Dec 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Get ID-s of the carriers  
+- Count carriers for nffe, cbc and ubc  
+- Prop.trend test for the carriers counts  
+- Make a bar-plot for the carriers counts  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_afterNov2021","ampliseq","s02_ampliseq_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+
+# Libraries
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s03_allele_counts_bc9.RData"))
+
+# Update working folders (just in case)
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_afterNov2021","ampliseq","s02_ampliseq_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(bc9_variants.df)
+dim(bc9_fiv.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Carriers ID-s and totals
+
+```{r}
+
+genotypes_bc9.mx <- genotypes.mx[bc9_fiv.df$ID,]
+dim(genotypes_bc9.mx)
+
+carriers_ids.udf <- function(x){paste(names(x)[which(x>0)], collapse=",")}
+apply(genotypes_bc9.mx,1,carriers_ids.udf)
+
+carriers_counts.udf <- function(x){sum(x>0, na.rm=T)}
+carriers_counts <- apply(genotypes_bc9.mx,1,carriers_counts.udf)
+carriers_counts
+
+sum(carriers_counts)
+sum(carriers_counts)/ncol(genotypes.mx)
+
+rm(carriers_ids.udf, carriers_counts.udf, carriers_counts, genotypes_bc9.mx)
+
+```
+
+# Proportions of carriers
+
+## Prepare indices
+
+```{r}
+
+table(phenotypes.df$cc)
+
+nffe <- phenotypes.df$cc == -1
+ubc <- phenotypes.df$cc == 0
+cbc <- phenotypes.df$cc == 1
+
+bc9_fiv <- bc9_fiv.df$ID
+
+```
+
+## nffe
+
+```{r}
+
+gt_fiv_nffe.mx <- genotypes.mx[bc9_fiv,nffe]
+dim(gt_fiv_nffe.mx)
+
+nffe_carriers <- apply(gt_fiv_nffe.mx,2,sum,na.rm=T) 
+table(nffe_carriers,useNA = "always")
+
+nffe_carriers_count <- sum(nffe_carriers>0)
+nffe_total_count <- sum(nffe) # sum, NOT length
+nffe_carriers_fraction <- nffe_carriers_count / nffe_total_count
+nffe_carriers_fraction
+
+rm(gt_fiv_nffe.mx,nffe_carriers,nffe)
+
+```
+
+## ubc
+
+```{r}
+
+gt_fiv_ubc.mx <- genotypes.mx[bc9_fiv,ubc]
+dim(gt_fiv_ubc.mx)
+
+ubc_carriers <- apply(gt_fiv_ubc.mx,2,sum,na.rm=T) 
+table(ubc_carriers,useNA = "always")
+
+ubc_carriers_count <- sum(ubc_carriers>0)
+ubc_total_count <- sum(ubc) # sum, NOT length
+ubc_carriers_fraction <- ubc_carriers_count / ubc_total_count
+ubc_carriers_fraction
+
+rm(gt_fiv_ubc.mx,ubc_carriers,ubc)
+
+```
+
+## cbc
+
+```{r}
+
+gt_fiv_cbc.mx <- genotypes.mx[bc9_fiv,cbc]
+dim(gt_fiv_cbc.mx)
+
+cbc_carriers <- apply(gt_fiv_cbc.mx,2,sum,na.rm=T) 
+table(cbc_carriers,useNA = "always")
+
+cbc_carriers_count <- sum(cbc_carriers>0)
+cbc_total_count <- sum(cbc) # sum, NOT length
+cbc_carriers_fraction <- cbc_carriers_count / cbc_total_count
+cbc_carriers_fraction
+
+rm(gt_fiv_cbc.mx,cbc_carriers,bc9_fiv,cbc)
+
+```
+
+## Prop trend test
+
+For proportions of carriers
+
+```{r}
+
+pt <- prop.trend.test(c(nffe_carriers_count,ubc_carriers_count,cbc_carriers_count),
+          c(nffe_total_count,ubc_total_count,cbc_total_count))
+
+pt
+
+rm(nffe_carriers_count,ubc_carriers_count,cbc_carriers_count,
+   nffe_total_count,ubc_total_count,cbc_total_count,pt)
+
+```
+
+## Barplot
+
+```{r}
+
+# Prepare data for plot
+proportions_of_carriers <- c(nffe_carriers_fraction,ubc_carriers_fraction,cbc_carriers_fraction)
+names(proportions_of_carriers) <- c("NFFE","UBC","CBC")
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(proportions_of_carriers, 
+              ylim=c(0,max(proportions_of_carriers)+0.01), 
+              main="Proportion of PV carriers",
+              ylab="Proportion of PV carriers")
+
+# Add labels to plot
+text(mp,proportions_of_carriers+0.005,round(proportions_of_carriers,3))
+
+# Clean-up
+rm(nffe_carriers_fraction,ubc_carriers_fraction,cbc_carriers_fraction,
+   proportions_of_carriers, mp)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(bc9_variants.df)
+dim(bc9_fiv.df)
+
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s04_proportin_of_carriers_bc9.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

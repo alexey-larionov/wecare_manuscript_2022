@@ -1,0 +1,57 @@
+Job id: 9566533
+Job name: s01_make_gvcfs
+Allocated node: cpu-e-718
+Time: Thu 21 Feb 02:24:05 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs
+
+------------------ Output ------------------
+
+Make individual gVCF files (in batches)
+Thu 21 Feb 02:24:05 GMT 2019
+
+--- Folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs
+
+bam_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s08_preprocessed_bam/idrl_bqsr_bam
+gvcf_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s09_raw_vcf/gvcf
+
+--- Tools ---
+
+java7: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.7.0_76/bin/java
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.4-46/GenomeAnalysisTK.jar
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+
+targets_interval_list: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_targets/ampliseq_targets_b37.interval_list
+
+Detected 541 bam files in the source folder
+Made 19 batches of up to 30 samples each
+
+02:59:52 Done batch 1
+03:25:03 Done batch 2
+03:48:23 Done batch 3
+04:09:20 Done batch 4
+04:30:43 Done batch 5
+04:47:00 Done batch 6
+05:03:28 Done batch 7
+05:23:28 Done batch 8
+05:39:05 Done batch 9
+05:54:10 Done batch 10
+06:09:55 Done batch 11
+06:23:30 Done batch 12
+06:41:01 Done batch 13
+06:57:02 Done batch 14
+07:09:01 Done batch 15
+07:21:55 Done batch 16
+07:33:31 Done batch 17
+07:40:26 Done batch 18
+07:40:33 Done batch 19
+
+Done all tasks
+Thu 21 Feb 07:40:33 GMT 2019
+

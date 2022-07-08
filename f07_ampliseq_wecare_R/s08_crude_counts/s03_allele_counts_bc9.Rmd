@@ -1,0 +1,284 @@
+---
+title: "Ampliseq: BC9 crude allele counts, WECARE only"
+author: "Alexey Larionov"
+date: "19 Apr 2022"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Although the BC list includes 11 genes, only 9 of them are included into the panel: BC8 & RAD51C  
+
+- Calculate crude counts: totals, and separately for cases and controls  
+- Fisher test for the crude counts  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clean-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Working folders
+base_folder="/Users/alexey/Documents/wecare/reanalysis_2022/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s08_crude_counts")
+scripts_folder <- file.path(base_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+
+# Libraries
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s02_select_bc9_pv.RData"))
+
+# Update working folders
+base_folder="/Users/alexey/Documents/wecare/reanalysis_2022/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s08_crude_counts")
+scripts_folder <- file.path(base_folder,"scripts","s08_crude_counts")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimensions
+dim(bc9_variants.df)
+dim(bc9_fiv.df)
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+# Check age
+mean(phenotypes.df$sub_dx_age)
+sd(phenotypes.df$sub_dx_age)
+
+# Check distribution of RT
+table(phenotypes.df$cc)
+table(phenotypes.df$xrtbreast)
+x <- table(phenotypes.df$cc, phenotypes.df$xrtbreast)
+c("UBC (194)","CBC (195)") -> rownames(x)
+c("Rx- (193)","Rx+ (196)") -> colnames(x)
+x
+fisher.test(x)
+rm(x)
+
+#colnames(phenotypes.df)
+#colnames(variants.df)
+
+```
+
+# Aggregated crude counts
+
+## Total
+
+```{r}
+
+total_ac <- sum(bc9_fiv.df$total_ac) 
+
+total_an <- sum(bc9_fiv.df$total_an)
+mean_an <- total_an / nrow(bc9_fiv.df)
+
+mean_af <- total_ac / total_an
+aggregated_af <- total_ac / mean_an
+
+mean_af
+aggregated_af
+
+rm(total_ac,total_an,mean_an,mean_af,aggregated_af)
+
+```
+
+## Controls
+
+```{r}
+
+controls_ac <- sum(bc9_fiv.df$controls_ac) 
+
+controls_total_an <- sum(bc9_fiv.df$controls_an)
+controls_mean_an <- controls_total_an / nrow(bc9_fiv.df)
+
+controls_mean_af <- controls_ac / controls_total_an
+controls_aggregated_af <- controls_ac / controls_mean_an
+
+rm(controls_mean_an)
+
+```
+
+## Cases
+
+```{r}
+
+cases_ac <- sum(bc9_fiv.df$cases_ac)
+
+cases_total_an <- sum(bc9_fiv.df$cases_an)
+cases_mean_an <- cases_total_an / nrow(bc9_fiv.df)
+
+cases_mean_af <- cases_ac / cases_total_an
+cases_aggregated_af <- cases_ac / cases_mean_an
+
+rm(cases_mean_an)
+
+```
+
+## Fisher test
+
+```{r}
+
+fisher_matrix <- matrix(c(cases_ac, cases_total_an - cases_ac,
+                          controls_ac, controls_total_an - controls_ac),
+                          nrow=2, byrow=T)
+
+colnames(fisher_matrix) <- c("Alt","Ref")
+rownames(fisher_matrix) <- c("Cases","Controls") # CBC, UBC
+fisher_matrix 
+
+ft <- fisher.test(fisher_matrix, conf.int=T)
+
+ft
+
+rm(cases_ac,cases_total_an,controls_ac,controls_total_an,fisher_matrix)
+
+```
+
+## Barplot
+
+### Mean AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(controls_mean_af,cases_mean_af)
+names(afs) <- c("UBC","CBC")
+
+cc_counts <- table(phenotypes.df$cc)
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.0005), 
+              main=paste("BC9: Ampliseq WECARE-only\n",
+                cc_counts[1],"controls vs ",cc_counts[2],
+                " cases\nCrude counts Fisher p=",round(ft$p.value,3)),
+              ylab="Mean AF in selected variants")
+
+# Add labels to plot
+text(mp,afs+0.0002,round(afs,4))
+
+# Clean-up
+rm(controls_mean_af, cases_mean_af,
+   afs, mp, ft)
+
+```
+
+### Aggregated AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(controls_aggregated_af,cases_aggregated_af)
+names(afs) <- c("UBC","CBC")
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main=paste("Ampliseq WECARE-only\n",
+cc_counts[1],"controls vs ",cc_counts[2],"cases\n",
+"SKAT Burden p=0.42"),
+              ylab="Aggregated AF")
+
+# Add labels to plot
+text(mp,afs+0.003,round(afs,3))
+
+# Barplot with simplified title
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main="Aggregated AF",
+              ylab=NA)
+
+# Add labels to plot
+text(mp,afs+0.003,round(afs,3))
+
+# Clean-up
+rm(controls_aggregated_af, cases_aggregated_af,afs, mp,cc_counts)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimensions
+dim(bc9_variants.df)
+dim(bc9_fiv.df)
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s03_allele_counts_bc9.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

@@ -1,0 +1,40 @@
+Job id: 10024976
+Job name: s02_get_wes_vqsr_for_panel
+Allocated node: cpu-e-12
+Time: Fri 15 Mar 21:14:04 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s11_filter_variants
+
+------------------ Output ------------------
+
+Get data for Ampliseq panel from WES VQSR VCF for comparison
+Fri 15 Mar 21:14:04 GMT 2019
+
+--- Files and folders ---
+
+source_server: admin@mgqnap.medschl.cam.ac.uk
+source_folder: /share/wecare_data/wes05_nov2016/wecare_nfe_nov2016_vqsr
+source_vcf: wecare_nfe_nov2016_vqsr.vcf
+wes_panel_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s11_vqsr_vcf/wes_nfe_panel_vqsr.vcf
+gatk_log: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s11_vqsr_vcf/wes_nfe_panel_vqsr.log
+
+--- Tools ---
+
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.6-0/GenomeAnalysisTK.jar
+java: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.8.0_40/bin/java
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+targets_interval_list: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_targets/ampliseq_targets_b37.interval_list
+
+Copying source files ...
+Done
+
+Extracting panel regions ...
+Done
+
+Done all tasks
+Fri 15 Mar 21:15:48 GMT 2019
+

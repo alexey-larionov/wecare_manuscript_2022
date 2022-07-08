@@ -1,0 +1,35 @@
+Job id: 35919945
+Allocated node: cpu-e-220
+Fri  5 Mar 14:18:27 GMT 2021
+
+Job name: s01_split_multialelic_sites
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/scripts/s01_split_multiallelic_sites
+
+ ------------------ Job progress ------------------ 
+
+Started s01_split: 05Mar2021_14:18:27
+
+Variant counts before splitting:
+
+Number of samples: 739
+Number of SNPs:    11337
+Number of INDELs:  1638
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   12902
+
+Splitting multiallelic variants ...
+
+Variant counts after splitting: 
+
+Number of samples: 739
+Number of SNPs:    11416
+Number of INDELs:  1920
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   13602
+
+Done: 05Mar2021_14:18:45
+

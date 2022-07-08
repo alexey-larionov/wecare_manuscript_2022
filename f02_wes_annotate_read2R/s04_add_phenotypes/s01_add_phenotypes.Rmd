@@ -1,0 +1,113 @@
+---
+title: "Add phenotypes"
+author: "Alexey Larionov"
+date: "25 October 2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Summary
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+
+options(width=999)
+
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/rds/project/erf33/rds-erf33-medgen"
+project_folder=file.path(base_folder,"users/alexey/wecare/reanalysis_wo_danish_2020")
+scripts_folder <- file.path(project_folder,"scripts","s04_add_phenotypes")
+setwd(scripts_folder)
+
+data_folder <- file.path(project_folder,"data","s04_add_phenotypes")
+dir.create(data_folder)
+
+# Required library
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+# Sequencing data
+source_folder <- file.path(project_folder,"data","s03_read_to_R")
+load(file.path(source_folder,"s01_import_vcf_to_R.RData"))
+data_folder <- file.path(project_folder,"data","s04_add_phenotypes")
+
+# Phenotypes
+source_folder <- file.path(project_folder,"data","s00_source_data")
+load(file.path(source_folder,"wecare_phenotypes_with_danish_AL28Aug2020.RData"))
+
+# Clean-up
+rm(source_folder)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(full_variants.df)
+
+dim(full_dp.mx)
+dim(full_gq.mx)
+dim(full_gt.mx)
+dim(full_ad.mx)
+
+dim(phenotypes_with_danish.df)
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s01_add_phenotypes.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

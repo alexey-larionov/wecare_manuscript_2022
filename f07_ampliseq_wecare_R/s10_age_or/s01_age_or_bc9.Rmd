@@ -1,0 +1,541 @@
+---
+title: "Ampliseq: bc9 OR by age"
+author: "Alexey Larionov"
+date: "22 Apr 2022"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Summary
+
+Calculate CBC/UBC OR for different age groups  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","reanalysis_2022","ampliseq","s01_ampliseq_wecare_only")
+scripts_folder <- file.path(project_folder,"scripts","s10_age_or")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s10_age_or")
+#dir.create(data_folder)
+
+# Libraries
+#library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(project_folder,"data","s08_crude_counts","s03_allele_counts_bc9.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","reanalysis_2022","ampliseq","s01_ampliseq_wecare_only")
+scripts_folder <- file.path(project_folder,"scripts","s10_age_or")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s10_age_or")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+sum(colnames(genotypes.mx) != phenotypes.df$sample.ID)
+sum(rownames(genotypes.mx) != variants.df$ID)
+
+dim(bc9_variants.df)
+dim(bc9_fiv.df)
+
+```
+
+# Indices
+
+## UBC / CBC
+
+```{r}
+
+table(phenotypes.df$cc, useNA = "always")
+
+ubc <- phenotypes.df$cc == 0
+cbc <- phenotypes.df$cc == 1
+
+sum(ubc)
+sum(cbc)
+
+```
+
+## Age
+
+```{r}
+
+hist(phenotypes.df$sub_dx_age,
+     main="Ampliseq: Ages distribution (median 51yo)",
+     xlim=c(20,55))
+
+abline(v=median(phenotypes.df$sub_dx_age), col="red", lty=2)
+
+mean(phenotypes.df$sub_dx_age)
+median(phenotypes.df$sub_dx_age)
+
+age <- median(phenotypes.df$sub_dx_age) 
+#age <- 50 # 40 & 45 do not work
+
+young <- phenotypes.df$sub_dx_age <= age
+old <- phenotypes.df$sub_dx_age > age
+
+sum(young)
+sum(old)
+
+```
+
+## bc9 FIVs
+
+```{r}
+
+bc9_fiv_ids <- bc9_fiv.df$ID
+bc9_fiv_count <- nrow(bc9_fiv.df)
+
+```
+
+# All samples
+
+Here the counts are calculated directly from genotypes.mx  
+
+For all sampes, it could be extracted from bc9_fiv.df  
+
+However, bc9_fiv.df could not be used later because  
+it doesn't have age-specific counts for CBC and UBC  
+
+## UBC ac & an
+
+```{r}
+
+ubc_ac <- sum(genotypes.mx[bc9_fiv_ids,ubc], na.rm=T)
+
+ubc_total_an <- sum(!is.na(genotypes.mx[bc9_fiv_ids,ubc]))*2
+ubc_mean_an <- ubc_total_an / bc9_fiv_count
+
+ubc_mean_af <- ubc_ac / ubc_total_an
+ubc_aggregated_af <- ubc_ac / ubc_mean_an
+
+rm(ubc_mean_an)
+
+```
+
+## CBC ac & an
+
+```{r}
+
+cbc_ac <- sum(genotypes.mx[bc9_fiv_ids,cbc], na.rm=T)
+
+cbc_total_an <- sum(!is.na(genotypes.mx[bc9_fiv_ids,cbc]))*2
+cbc_mean_an <- cbc_total_an / bc9_fiv_count
+
+cbc_mean_af <- cbc_ac / cbc_total_an
+cbc_aggregated_af <- cbc_ac / cbc_mean_an
+
+rm(cbc_mean_an)
+
+```
+
+## Fisher test
+
+```{r}
+
+fisher_matrix <- matrix(c(ubc_ac, ubc_total_an - ubc_ac,
+                          cbc_ac, cbc_total_an - cbc_ac),
+                          nrow=2, byrow=T)
+
+colnames(fisher_matrix) <- c("Alt","Ref")
+rownames(fisher_matrix) <- c("UBC","CBC")
+fisher_matrix 
+
+ft <- fisher.test(fisher_matrix, conf.int=T)
+
+ft
+
+rm(ubc_ac,ubc_total_an,
+   cbc_ac,cbc_total_an,
+   fisher_matrix)
+
+```
+
+## Barplots
+
+### Mean AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(ubc_mean_af,cbc_mean_af)
+names(afs) <- c("UBC","CBC")
+
+ubc_count <- sum(phenotypes.df$cc == 0)
+cbc_count <- sum(phenotypes.df$cc == 1)
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.0005), 
+              main=paste("bc9 Mean AF: Ampliseq all ages\n",
+                ubc_count," UBC vs ",cbc_count," CBC\n",
+                "Crude counts Fisher p=",round(ft$p.value,3)),
+              ylab="Mean AF in selected variants")
+
+# Add labels to plot
+text(mp,afs+0.0002,round(afs,4))
+
+# Clean-up
+rm(ubc_mean_af, cbc_mean_af, afs, mp)
+
+```
+
+### Aggregated AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(ubc_aggregated_af,cbc_aggregated_af)
+names(afs) <- c("UBC","CBC")
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main=paste("bc9 Aggregated AF: Ampliseq all ages\n",
+                ubc_count," UBC vs ",cbc_count," CBC\n",
+                "Crude counts Fisher p=",round(ft$p.value,3)),
+              ylab="Aggregated AF")
+
+# Add labels to plot
+text(mp,afs+0.003,round(afs,3))
+
+# Clean-up
+rm(ubc_aggregated_af, cbc_aggregated_af, afs, mp, 
+   ubc_count, cbc_count, ft)
+
+```
+
+# Young participants
+
+## Young UBC ac & an
+
+```{r}
+
+young_ubc_ac <- sum(genotypes.mx[bc9_fiv_ids, young & ubc], na.rm=T)
+
+young_ubc_total_an <- sum(!is.na(genotypes.mx[bc9_fiv_ids, young & ubc]))*2
+young_ubc_mean_an <- young_ubc_total_an / bc9_fiv_count
+
+young_ubc_mean_af <- young_ubc_ac / young_ubc_total_an
+young_ubc_aggregated_af <- young_ubc_ac / young_ubc_mean_an
+
+rm(young_ubc_mean_an)
+
+```
+
+## Young CBC ac & an
+
+```{r}
+
+young_cbc_ac <- sum(genotypes.mx[bc9_fiv_ids, young & cbc], na.rm=T)
+
+young_cbc_total_an <- sum(!is.na(genotypes.mx[bc9_fiv_ids, young & cbc]))*2
+young_cbc_mean_an <- young_cbc_total_an / bc9_fiv_count
+
+young_cbc_mean_af <- young_cbc_ac / young_cbc_total_an
+young_cbc_aggregated_af <- young_cbc_ac / young_cbc_mean_an
+
+rm(young_cbc_mean_an)
+
+```
+
+## Fisher test
+
+```{r}
+
+fisher_matrix <- matrix(c(young_ubc_ac, young_ubc_total_an - young_ubc_ac,
+                          young_cbc_ac, young_cbc_total_an - young_cbc_ac),
+                          nrow=2, byrow=T)
+
+colnames(fisher_matrix) <- c("Alt","Ref")
+rownames(fisher_matrix) <- c("Young UBC","Young CBC")
+fisher_matrix 
+
+ft <- fisher.test(fisher_matrix, conf.int=T)
+
+ft
+
+rm(young_ubc_ac,young_ubc_total_an,
+   young_cbc_ac,young_cbc_total_an,
+   fisher_matrix)
+
+```
+
+## Barplots
+
+### Mean AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(young_ubc_mean_af,young_cbc_mean_af)
+names(afs) <- c("UBC","CBC")
+
+young_ubc_count <- sum(phenotypes.df$cc == 0 & young)
+young_cbc_count <- sum(phenotypes.df$cc == 1 & young)
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.0005), 
+              main=paste("bc9 Mean AF: Young Ampliseq (<=",age,")\n",
+                young_ubc_count," UBC vs ",young_cbc_count," CBC\n",
+                "Crude counts Fisher p=",
+                format(round(ft$p.value,4),scientific=F)),
+              ylab="Mean AF in selected variants")
+
+# Add labels to plot
+text(mp,afs+0.0002,round(afs,4))
+
+# Clean-up
+rm(young_ubc_mean_af, young_cbc_mean_af, afs, mp)
+
+```
+
+### Aggregated AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(young_ubc_aggregated_af,young_cbc_aggregated_af)
+names(afs) <- c("UBC","CBC")
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main=paste("bc9 Aggregated AF: Young Ampliseq (<=",age,")\n",
+                young_ubc_count," UBC vs ",young_cbc_count," CBC\n",
+                "Crude counts Fisher p=",
+                format(round(ft$p.value,4),scientific=F)),
+              ylab="Aggregated AF")
+
+# Add labels to plot
+text(mp,afs+0.003,round(afs,2))
+
+# Barplot with simplified title
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main=paste("Ampliseq patients of",age,"years old or younger\n",
+                young_ubc_count," UBC vs ",young_cbc_count," CBC\n",
+                "Crude counts Fisher p=",
+                format(round(ft$p.value,2),scientific=F)),
+              ylab="Aggregated AF")
+
+# Add labels to plot
+text(mp,afs+0.003,round(afs,2))
+
+# Clean-up
+rm(young_ubc_aggregated_af, young_cbc_aggregated_af, afs, mp, 
+   young_ubc_count, young_cbc_count, ft)
+
+```
+
+# Old participants
+
+## Old UBC ac & an
+
+```{r}
+
+old_ubc_ac <- sum(genotypes.mx[bc9_fiv_ids, old & ubc], na.rm=T)
+
+old_ubc_total_an <- sum(!is.na(genotypes.mx[bc9_fiv_ids, old & ubc]))*2
+old_ubc_mean_an <- old_ubc_total_an / bc9_fiv_count
+
+old_ubc_mean_af <- old_ubc_ac / old_ubc_total_an
+old_ubc_aggregated_af <- old_ubc_ac / old_ubc_mean_an
+
+rm(old_ubc_mean_an)
+
+```
+
+## Old CBC ac & an
+
+```{r}
+
+old_cbc_ac <- sum(genotypes.mx[bc9_fiv_ids, old & cbc], na.rm=T)
+
+old_cbc_total_an <- sum(!is.na(genotypes.mx[bc9_fiv_ids, old & cbc]))*2
+old_cbc_mean_an <- old_cbc_total_an / bc9_fiv_count
+
+old_cbc_mean_af <- old_cbc_ac / old_cbc_total_an
+old_cbc_aggregated_af <- old_cbc_ac / old_cbc_mean_an
+
+rm(old_cbc_mean_an)
+
+```
+
+## Fisher test
+
+```{r}
+
+fisher_matrix <- matrix(c(old_ubc_ac, old_ubc_total_an - old_ubc_ac,
+                          old_cbc_ac, old_cbc_total_an - old_cbc_ac),
+                          nrow=2, byrow=T)
+
+colnames(fisher_matrix) <- c("Alt","Ref")
+rownames(fisher_matrix) <- c("Old UBC","Old CBC")
+fisher_matrix 
+
+ft <- fisher.test(fisher_matrix, conf.int=T)
+
+ft
+
+rm(old_ubc_ac,old_ubc_total_an,
+   old_cbc_ac,old_cbc_total_an,
+   fisher_matrix)
+
+```
+
+## Barplots
+
+### Mean AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(old_ubc_mean_af,old_cbc_mean_af)
+names(afs) <- c("UBC","CBC")
+
+old_ubc_count <- sum(phenotypes.df$cc == 0 & old)
+old_cbc_count <- sum(phenotypes.df$cc == 1 & old)
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.0005), 
+              main=paste("bc9 Mean AF: Old Ampliseq (>",age,")\n",
+                old_ubc_count," UBC vs ",old_cbc_count," CBC\n",
+                "Crude counts Fisher p=",
+                format(round(ft$p.value,4),scientific=F)),
+              ylab="Mean AF in selected variants")
+
+# Add labels to plot
+text(mp,afs+0.0002,round(afs,4))
+
+# Clean-up
+rm(old_ubc_mean_af, old_cbc_mean_af, afs, mp)
+
+```
+
+### Aggregated AF
+
+```{r}
+
+# Prepare data for plot
+afs <- c(old_ubc_aggregated_af,old_cbc_aggregated_af)
+names(afs) <- c("UBC","CBC")
+
+# Barplot (keep mid-positions of bars)
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main=paste("bc9 Aggregated AF: Old Ampliseq (>",age,")\n",
+                old_ubc_count," UBC vs ",old_cbc_count," CBC\n",
+                "Crude counts Fisher p=",
+                format(round(ft$p.value,4),scientific=F)),
+              ylab="Aggregated AF")
+
+# Add labels to plot
+text(mp,afs+0.003,round(afs,2))
+
+# Barplot with simplified title
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main=paste("Ampliseq patients older than",age,"years\n",
+                old_ubc_count," UBC vs ",old_cbc_count," CBC\n",
+                "Crude counts Fisher p=",
+                format(round(ft$p.value,4),scientific=F)),
+              ylab="Aggregated AF")
+
+# Add labels to plot
+text(mp,afs+0.003,round(afs,2))
+
+# Clean-up
+rm(old_ubc_aggregated_af, old_cbc_aggregated_af, afs, mp, 
+   old_ubc_count, old_cbc_count, ft,
+   cbc,ubc,old,young,bc9_fiv_count,bc9_fiv_ids)
+
+```
+
+# Data summary
+
+```{r}
+
+ls()
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check consistency of rownames and colnames
+sum(colnames(genotypes.mx) != phenotypes.df$sample.ID)
+sum(rownames(genotypes.mx) != variants.df$ID)
+
+table(phenotypes.df$cc, useNA = "always")
+
+dim(bc9_variants.df)
+dim(bc9_fiv.df)
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s01_age_or_bc9.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+
+```

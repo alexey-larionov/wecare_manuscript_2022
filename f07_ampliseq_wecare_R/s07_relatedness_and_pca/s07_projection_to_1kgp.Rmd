@@ -1,0 +1,268 @@
+---
+title: "Projecting Ampliseq WECARE w/o Danish on 1KGP"
+author: "Alexey Larionov"
+date: "08 May 2022"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/reanalysis_2022/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s07_relatedness_and_pca")
+scripts_folder <- file.path(base_folder,"scripts","s07_relatedness_and_pca")
+setwd(scripts_folder)
+
+library(bigsnpr) # for bed_autoSVD() and bed()
+library(bigutilsr) # for prob_dist() and tukey_mc_up() for outlier detection
+library(hexbin) # for plotting svd loadings
+library(ggplot2)
+library(dplyr)
+
+NCORES <- 1
+#NCORES <- nb_cores() # 2
+
+```
+
+# Read wecare bed file
+
+```{r}
+
+# Location of bed file
+bed_file <- file.path(data_folder,"s02_bed_bim_fam","common_biallelic_autosomal_snps_in_HWE.bed")
+
+# Attach PLINK data to R environment
+wecare.bed <- bed(bed_file) # bigsnpr::bed
+
+# Explore wecare.bed
+wecare.bed
+#names(wecare.bed)
+#str(wecare.bed)
+#attributes(wecare.bed)
+#wecare.bed$bedfile
+#wecare.bed$address
+
+# Clean-up
+rm(bed_file)
+
+```
+
+# Read wecare phenotypes
+
+```{r}
+
+wecare_phenotypes.df <- wecare.bed$fam
+dim(wecare_phenotypes.df)
+head(wecare_phenotypes.df)
+
+#potential_outliers <- wecare_phenotypes.df$sample.ID %in% c("P6_D05", "P5_E09")
+#sum(potential_outliers)
+
+#data_file <- file.path(data_folder,"s04_phenotypes_with_PCs.RData")
+#load(data_file)
+#dim(updated_phenotypes.df)
+#rm(data_file)
+
+```
+
+# Read b37 1KGP data
+
+```{r}
+
+# Location of bed file
+project_folder="/Users/alexey/Documents/wecare/reanalysis_2022"
+bed_file <- file.path(project_folder,"b37_1kgp","kgp_b37_biallelic_snps_autosomal_common_non_related_no_outliers.bed")
+
+# Read (=attach?) data
+kgp.bed <- bed(bed_file) # bigsnpr::bed
+kgp.bed
+
+str(kgp.bed)
+
+kgp_samples <- kgp.bed$fam$sample.ID
+
+# Clean-up
+rm(bed_file)
+
+```
+
+# Load population descriptions for 1KGP
+
+```{r}
+
+data_file <- file.path(project_folder,"b37_1kgp","igsr-1000_genomes_phase_3_release.tsv")
+
+kgp_pop.df <- read.table(data_file, header=T, sep = "\t")
+dim(kgp_pop.df)
+rownames(kgp_pop.df) <- kgp_pop.df$Sample.name
+
+kgp_pops <- kgp_pop.df[kgp_samples,"Superpopulation.code"]
+table(kgp_pops, useNA = "always")
+
+kgp_pops_colours <- kgp_pops
+"blue" -> kgp_pops_colours[kgp_pops == "EUR"]
+"darkgrey" -> kgp_pops_colours[kgp_pops == "AFR"]
+"pink" -> kgp_pops_colours[kgp_pops == "EAS"]
+"yellow" -> kgp_pops_colours[kgp_pops == "SAS"]
+"orange" -> kgp_pops_colours[kgp_pops == "AMR"]
+table(kgp_pops_colours, useNA = "always")
+
+rm(data_file)
+
+```
+
+# Check variants overlap between 1kgp and wecare
+
+```{r}
+
+wecare_map.df <- wecare.bed$map
+dim(wecare_map.df)
+
+kgp_map.df <- kgp.bed$map
+dim(kgp_map.df)
+
+x <- inner_join(kgp_map.df, wecare_map.df, by=c("chromosome","physical.pos"))
+y <- inner_join(kgp_map.df, wecare_map.df, by=c("chromosome","physical.pos","allele1","allele2"))
+
+dim(x)
+head(x)
+
+dim(y)
+head(y)
+
+rm(x,y)
+
+```
+
+# Project Wecare to 1KGP
+
+A simple projecting procedure would be multiplying the genotypes by the corresponding PC loadings.  
+However, the augmented algorithm (OADP) is used to avoid shrinkage (the shrinkage is becoming evident in PCs > 5).
+
+```{r}
+
+# Calculate the "projection"
+proj <- bed_projectPCA(kgp.bed, wecare.bed, ncores = NCORES, roll.size=0)
+
+```
+
+Because of the low number of variants, 
+I had to suppress smoothing log-p-values
+to pass this point.  
+
+Other way it crashed at this point with the following error message:  
+
+[Step 1/3] Matching variants of reference with target data..
+5,359,025 variants to be matched.
+20 ambiguous SNPs have been removed.
+175 variants have been matched; 0 were flipped and 32 were reversed.
+
+[Step 2/3] Computing (auto) SVD of reference..
+
+Phase of clumping (on MAC) at r^2 > 0.2.. keep 118 variants.
+Discarding 0 variant with MAC < 10.
+
+Iteration 1:
+Computing SVD..
+Error in bigutilsr::rollmean(S.col[ind], roll.size) : 
+  Parameter 'size' is too large.
+
+This error was not yet resolved as on 04Mar2021:  
+https://github.com/privefl/bigutilsr/issues/2  
+
+The same error was also happening in the script  
+s04_calculate_PCs.Rmd  
+
+```{r}
+# Explore proj ...
+str(proj)
+# proj$obj.svd.ref # big_SVD object computed from reference data.
+
+```
+
+# Plot 2 top PC-s
+
+```{r}
+
+# Get 1KGP PCs
+kgen_pcs.mx <- predict(proj$obj.svd.ref)
+dim(kgen_pcs.mx)
+
+# Get wecare projections
+wecare_pcs.mx <- proj$OADP_proj 
+dim(wecare_pcs.mx)
+# OADP projection of new data into space of reference PCA
+# proj$obj.svd.ref # big_SVD object computed from reference data.
+
+# Make colours for the plot
+x <- cbind(kgen_pcs.mx[,1:2],kgp_pops_colours)
+eur <- x[x[,3]=="blue",]
+non_eur <- x[x[,3]!="blue",]
+x <- rbind(non_eur,eur)
+y <- cbind(wecare_pcs.mx[, 1:2],"red")
+z <- rbind(x,y)
+
+# Plot 2 top PC-s
+plot(z[,1:2],col=z[,3], xlab="PC1", ylab="PC2",
+     main="Projecting WECARE Ampliseq to 1KGP\nusing only 161 variants")
+text(5,0,"AFR")
+text(-1,5,"EAS")
+text(-1,1,"AMR/SAS")
+text(-5,-6,"EUR")
+
+legend("bottomright",legend="WECARE Ampliseq", pch=1, col ="red", bty="n")
+
+# Clean-up
+rm(x,y,z,eur,non_eur)
+
+```
+
+# End section
+
+```{r}
+
+ls()
+Sys.time()
+gc()
+
+```

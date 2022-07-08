@@ -1,0 +1,42 @@
+Job id: 9689555
+Job name: s03_combine_gvcfs
+Allocated node: cpu-e-1050
+Time: Mon 25 Feb 19:08:05 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs
+
+------------------ Output ------------------
+
+Launch combining gVCFs in batches
+Mon 25 Feb 19:08:05 GMT 2019
+
+--- Folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs
+
+gvcf_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s09_raw_vcf/gvcf
+combined_gvcf_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s09_raw_vcf/combined_gvcf
+
+--- Tools ---
+
+java: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.8.0_40/bin/java
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.6-0/GenomeAnalysisTK.jar
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+
+Detected 541 gVCF files in the source folder
+Made 6 batches of up to 100 samples each
+
+Launched batch 1
+Launched batch 2
+Launched batch 3
+Launched batch 4
+Launched batch 5
+Launched batch 6
+
+Done all batches
+Mon 25 Feb 19:09:36 GMT 2019
+

@@ -1,0 +1,376 @@
+---
+title: "Make PLINK dataset for PCA calculation"
+author: "Alexey Larionov"
+date: "31 Jan 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Select common biallelic SNPs in HWE (p<10-5)  
+- Make ped-map PLINK dataset for PCA calculation  
+
+Note: takes up to 2 hrs  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+#dir.create(data_folder)
+plink_ped_folder <- file.path(data_folder,"s01_ped_map")
+#dir.create(plink_ped_folder)
+
+# Reqired libraries
+library(HardyWeinberg)
+
+```
+
+# Load data
+
+```{r}
+
+# Data
+load(file.path(project_folder,"data","s06_qc_filters","s04_filter_by_sample_call_rates.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+plink_ped_folder <- file.path(data_folder,"s01_ped_map")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+table(phenotypes.df$cc, useNA="always")
+
+```
+
+# Detect multiallelic variants
+
+```{r}
+
+# Flag variants with repeated locations
+variant_positions <- paste(variants.df$CHROM,variants.df$POS,sep="_")
+head(variant_positions)
+
+repeated_positions <- duplicated(variant_positions)
+sum(repeated_positions)
+
+duplicated_positions <- unique(variant_positions[repeated_positions])
+length(duplicated_positions)
+
+multiallelic_variants <- variant_positions %in% duplicated_positions
+sum(multiallelic_variants)
+
+variants.df <- data.frame(variants.df,multiallelic_variants)
+#colnames(variants.df)
+
+# Clean-up
+rm(variant_positions, repeated_positions, duplicated_positions)
+
+```
+
+# SNPs
+
+Correspond to the vep_VARIANT_CLASS
+
+```{r}
+
+#table(variants.df$vep_BIOTYPE)
+table(variants.df$vep_VARIANT_CLASS,useNA = "always")
+
+SNP <- variants.df$REF %in% c("A","C","T","G") & 
+  variants.df$ALT %in% c("A","C","T","G")
+
+sum(SNP)
+
+sum(SNP & variants.df$vep_VARIANT_CLASS != "SNV")
+
+```
+
+# Common variants
+
+```{r}
+
+# Check NA-s in vep_gnomAD_NFE_AF
+sum(is.na(variants.df$vep_gnomAD_NFE_AF))
+
+# Count definetely known common variants (explicitly not including how NA-s)
+common_variants <- 
+  variants.df$vep_gnomAD_NFE_AF > 0.05 & 
+  variants.df$vep_gnomAD_NFE_AF < 0.95 &
+  !is.na(variants.df$vep_gnomAD_NFE_AF)
+
+# Count definetely known common variants
+sum(common_variants)
+
+```
+
+# HWE
+
+Using library HardyWeinberg  
+
+```{r}
+
+# Prepare genotypes counts
+genotypes_counts <- MakeCounts(t(genotypes.mx),coding=c(0,1,2))
+dim(genotypes_counts)
+head(genotypes_counts)
+
+# Calculate HW p-values
+hwe <- HWExactStats(genotypes_counts[,1:3], verbose=FALSE)
+head(hwe)
+
+# Compare with previous column
+plot(log(as.numeric(variants.df$HWE)),log(hwe))
+
+# Get variants violating HWE
+hwe_violators <- hwe < 10e-5 | as.numeric(variants.df$HWE) < 10e-5
+sum(hwe_violators)
+
+# Update variants table
+variants.df <- data.frame(variants.df,hwe)
+
+# Clean-up
+rm(genotypes_counts, hwe)
+
+```
+
+# Select variants for PCA analysis
+
+```{r}
+
+# Select variants
+variants_for_PCA <- SNP & common_variants & !multiallelic_variants & !hwe_violators
+sum(variants_for_PCA)
+
+# Update data frames and matrices
+variants_for_pca.df <- variants.df[variants_for_PCA,]
+genotypes_for_pca.mx <- genotypes.mx[variants_for_PCA,]
+
+# Check results
+dim(variants_for_pca.df)
+dim(genotypes_for_pca.mx)
+
+# Clean-up
+rm(variants_for_PCA, SNP, common_variants, multiallelic_variants, hwe_violators, 
+   variants.df, genotypes.mx)
+
+```
+
+# Prepare genotypes for plink ped
+
+Genotypes are recoded from 0/1/2/NA to character codes used in plink ("0 0" for NA)  
+Takes ~ 2 hrs
+
+```{r}
+
+# Vectors of refs and alts
+refs <- as.vector(variants_for_pca.df$REF)
+alts <- as.vector(variants_for_pca.df$ALT)
+
+# Make matrix for output
+plink_geno.mx <- matrix(ncol=ncol(genotypes_for_pca.mx), nrow=0)
+
+# For each common variant
+#for (ro in 1:1000){
+for (ro in 1:nrow(variants_for_pca.df)){
+  
+  # Prepare character codes for genotypes
+  RR <- paste(refs[ro], refs[ro])
+  AR <- paste(alts[ro], refs[ro])
+  AA <- paste(alts[ro], alts[ro])
+  
+  # Recode genotypes
+  num_genotypes <- genotypes_for_pca.mx[ro,]  
+  chr_genotypes <- num_genotypes
+  RR -> chr_genotypes[num_genotypes == 0]
+  AR -> chr_genotypes[num_genotypes == 1]
+  AA -> chr_genotypes[num_genotypes == 2]
+  "0 0" -> chr_genotypes[is.na(num_genotypes)]
+  
+  # Add recoded genotypes to the output matrix
+  plink_geno.mx <- rbind(plink_geno.mx, chr_genotypes)
+  
+  # Clean-up
+  rm(RR, AR, AA, num_genotypes, chr_genotypes)
+  
+}
+
+# Add rownames
+variants_for_pca.df$ID -> rownames(plink_geno.mx)
+
+# Check result
+dim(plink_geno.mx)
+plink_geno.mx[1:5, 1:5]
+genotypes_for_pca.mx[1:5, 1:5]
+
+# Clean-up
+rm(ro, alts, refs)
+
+```
+
+# Make plink ped
+
+Plink file formats description is elusive about the field separator in **ped** file.  
+Exploring the **ped** file generated by plink-1.9 from vcf I noted space-separated file.  
+So I generated my **ped** file as space-sepatated.  
+
+```{r}
+
+# Compile plink ped file
+ped_fam <- colnames(genotypes_for_pca.mx) # Family ID
+ped_ind <- colnames(genotypes_for_pca.mx) # Individual ID: I use family ID,  
+ped_pat <- 0 # Paternal ID (0 for not present)
+ped_mat <- 0 # Maternal ID (0 for not present)
+ped_sex <- 2 # 1 = M, 2 = F (all wecare participants are females)
+ped_phe <- as.vector(phenotypes.df$cc) + 1 # Change 0/1 to 1/2: unaffected/affected respectively
+                                       # There should be no missed phenotypes
+ped_gen <- t(plink_geno.mx) # Transpose recoded genotypes
+
+plink_ped.mx <- cbind(ped_fam, ped_ind, ped_pat, ped_mat, ped_sex, ped_phe, ped_gen)
+
+# Check result
+dim(plink_ped.mx)
+plink_ped.mx[1:15,1:7]
+sum(is.na(plink_ped.mx)) # 0
+
+# Write plink ped file
+common_vars_ped_file <- file.path(plink_ped_folder, "common_biallelic_snps_in_HWE.ped")
+write.table(plink_ped.mx, file = common_vars_ped_file, quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+# Clean-up
+rm(ped_fam, ped_ind, ped_pat, ped_mat, ped_sex, ped_phe, ped_gen, common_vars_ped_file)
+
+```
+
+# Make plink map
+
+Plink file formats description is elusive about the field separator in **map** file.  
+Exploring the **map** file generated by plink-1.9 from vcf I noted tab-separated file.  
+So I denerated my **map** file as tab-sepatated.  
+Previous experiments showed that space-separated **map** file may also be tolerated.  
+
+```{r}
+
+# Prepare data
+chr <- as.vector(variants_for_pca.df$CHROM) # Chromosome
+snp <- rownames(plink_geno.mx) # SplitVarID
+map <- 0 # Genetic distance in Morgans (0 for NA)
+pos <- as.vector(variants_for_pca.df$POS) # Position on chromosome
+
+# Compile table for map file
+plink_map.mx <- cbind(chr, snp, map, pos)
+
+# Check the table
+dim(plink_map.mx)
+plink_map.mx[1:5,]
+sum(is.na(plink_map.mx)) # 0
+
+# Check number of variants per chromosome (X-chromosome will be excluded by PLINK later)
+table(plink_map.mx[,1], useNA="always")
+
+# Write plink map file
+common_vars_map_file <- file.path(plink_ped_folder, "common_biallelic_snps_in_HWE.map")
+write.table(plink_map.mx, file = common_vars_map_file, sep="\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+# Clean-up
+rm(chr, snp, map, pos, common_vars_map_file, plink_ped_folder)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(variants_for_pca.df)
+dim(genotypes_for_pca.mx)
+dim(phenotypes.df)
+
+dim(plink_geno.mx)
+dim(plink_ped.mx)
+dim(plink_map.mx)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes_for_pca.mx))
+sum(variants_for_pca.df$ID != rownames(genotypes_for_pca.mx))
+
+# Count cases and controls
+summary(as.factor(phenotypes.df$cc))
+summary(as.factor(plink_ped.mx[,"ped_phe"]))
+
+```
+
+# Save image
+
+```{r}
+
+save.image(file.path(data_folder,"s01_make_ped_map.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

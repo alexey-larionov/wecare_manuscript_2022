@@ -1,0 +1,215 @@
+---
+title: "Update phenotypes"
+author: "Alexey Larionov"
+date: "30 Jan 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Explore phenotypes annotations  
+- Convert factors to approprite data types where necessary  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s05_update_and_cleaning")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s05_update_and_cleaning")
+
+# Libraries
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s02_update_variants.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s05_update_and_cleaning")
+data_folder <- file.path(project_folder,"data","s05_update_and_cleaning")
+
+```
+
+# Check data
+
+```{r}
+
+ls ()
+
+# Check objects dimentions
+dim(variants.df)
+dim(phenotypes.df)
+dim(genotypes.mx)
+
+dim(dp.mx)
+dim(gq.mx)
+dim(alt_fraction.mx)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+sum(phenotypes.df$wes_id != colnames(gq.mx))
+sum(phenotypes.df$wes_id != colnames(dp.mx))
+sum(phenotypes.df$wes_id != colnames(alt_fraction.mx))
+
+sum(variants.df$ID != rownames(gq.mx))
+sum(variants.df$ID != rownames(dp.mx))
+sum(variants.df$ID != rownames(alt_fraction.mx))
+
+```
+
+# Check types of phenotype fields
+
+Convert factors, if any, to vectors
+
+```{r}
+
+str(phenotypes.df)
+
+```
+
+# Check missed values
+
+```{r}
+
+# Check presence of NA-s
+sum(is.na(phenotypes.df))
+
+# NA-s per field
+num_na <- function(x){sum(is.na(x))}
+x <- apply(phenotypes.df,2,num_na)
+x[x>0]
+
+# Other possible missed value codes
+sum(phenotypes.df=="",na.rm=T)
+sum(phenotypes.df==".",na.rm=T)
+
+# Clean-up
+rm(x,num_na)
+
+```
+
+# Explore some phenotype annotations
+
+```{r}
+
+phenotypes.df %>% 
+  group_by(filter) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+phenotypes.df %>% 
+  group_by(registry) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+phenotypes.df %>% 
+  group_by(hist_cat) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+phenotypes.df %>% 
+  group_by(chemo_cat) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+phenotypes.df %>% 
+  group_by(er) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+phenotypes.df %>% 
+  group_by(stage) %>% 
+  summarise(count=n())
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+dim(dp.mx)
+dim(gq.mx)
+dim(alt_fraction.mx)
+
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(phenotypes.df$wes_id != colnames(gq.mx))
+sum(phenotypes.df$wes_id != colnames(dp.mx))
+sum(phenotypes.df$wes_id != colnames(alt_fraction.mx))
+
+sum(variants.df$ID != rownames(genotypes.mx))
+sum(variants.df$ID != rownames(gq.mx))
+sum(variants.df$ID != rownames(dp.mx))
+sum(variants.df$ID != rownames(alt_fraction.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s03_update_phenotypes.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

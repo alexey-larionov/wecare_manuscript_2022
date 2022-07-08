@@ -1,0 +1,37 @@
+Job id: 10043018
+Job name: s03_bsfstat
+Allocated node: cpu-e-314
+Time: Mon 18 Mar 14:19:04 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s10_joined_genotyping
+
+------------------ Output ------------------
+
+Calculate and plot bcf-stats for raw VCF
+Mon 18 Mar 14:19:04 GMT 2019
+
+--- Files and folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s10_joined_genotyping
+
+vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/ampliseq_nfe_locID_MAflag.vcf
+stats_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/bcf_stats
+stats: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/bcf_stats/ampliseq_nfe_locID_MAflag.stats
+
+--- Tools ---
+
+bcftools: /rds/project/erf33/rds-erf33-medgen/tools/bcftools/bcftools-1.8/bin/bcftools
+plot_vcfstats: /rds/project/erf33/rds-erf33-medgen/tools/bcftools/bcftools-1.8/bin/plot-vcfstats
+
+
+Calculating stats...
+Making plots...
+Parsing bcftools stats output: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/bcf_stats/ampliseq_nfe_locID_MAflag.stats
+Plotting graphs: python plot.py
+Creating PDF: pdflatex summary.tex >plot-vcfstats.log 2>&1
+Finished: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/bcf_stats/summary.pdf
+
+Done
+Mon 18 Mar 14:19:08 GMT 2019
+

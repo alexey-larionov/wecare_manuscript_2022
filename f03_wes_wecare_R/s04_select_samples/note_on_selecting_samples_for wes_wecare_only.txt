@@ -1,0 +1,8 @@
+s02_select_samples.RData contains wecare samples passed initial QC filters, without NFE and Danish.
+The file was prepared in HPC.
+
+This file was copied from HPC in a way like this:
+
+cd ...
+
+rsync -avhe ssh al720@login-cpu.hpc.cam.ac.uk:/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s04_add_phenotypes/s02_select_samples.RData .

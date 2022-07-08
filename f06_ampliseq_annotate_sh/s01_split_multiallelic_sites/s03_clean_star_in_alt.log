@@ -1,0 +1,36 @@
+Job id: 35920140
+Allocated node: cpu-e-28
+Fri  5 Mar 14:40:09 GMT 2021
+
+Job name: s02_clean_star_in_alt
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/scripts/s01_split_multiallelic_sites
+
+ ------------------ Job progress ------------------ 
+
+Started s02_clean: 05Mar2021_14:40:09
+
+Variant counts before cleaning:
+
+Number of samples: 739
+Number of SNPs:    11416
+Number of INDELs:  1920
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   13602
+
+Remove variants with * in ALT
+(appeared after splitting multiallelic sitrs ?)
+
+Variant counts after removing * in ALT: 
+
+Number of samples: 739
+Number of SNPs:    11416
+Number of INDELs:  1920
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   13336
+
+Done: 05Mar2021_14:40:21
+

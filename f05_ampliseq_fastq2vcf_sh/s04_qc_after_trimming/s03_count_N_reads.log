@@ -1,0 +1,69 @@
+Job id: 5941747
+Job name: s03_count_N_reads
+Allocated node: cpu-e-568
+Time: Thu 18 Oct 23:22:46 BST 2018
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/scripts_and_logs/s04_qc_after_trimming
+
+------------------ Output ------------------
+
+Conunt 35/27 x N reads before trimming
+Thu 18 Oct 23:22:46 BST 2018
+
+base_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3
+fastq_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/data_and_results/s03_trimmed_fastq/fastq
+counts_file: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/data_and_results/s04_qc_after_trimming/count_N_reads/count_N_reads.txt
+
+Found 541 R1 fastq files
+Found 541 R2 fastq files
+Explore result
+sample_no	illumina_id	read_no	lane_no	total_reads	n_reads
+100	S8	R1	L007	1157775	0
+101	S528	R1	L008	850256	0
+102	S466	R1	L008	674247	0
+103	S147	R1	L007	599781	0
+104	S325	R1	L008	1318004	0
+105	S337	R1	L008	963983	0
+106	S303	R1	L008	1026579	0
+107	S467	R1	L008	552421	0
+108	S482	R1	L008	31	0
+
+91	S485	R2	L008	1125610	0
+92	S45	R2	L007	1571802	0
+93	S338	R2	L008	1480603	0
+94	S143	R2	L007	618378	0
+95	S517	R2	L008	1506266	0
+96	S236	R2	L007	739600	0
+97	S509	R2	L008	1376908	0
+98	S335	R2	L008	914629	0
+99	S418	R2	L008	856238	0
+9	S346	R2	L008	850497	0
+
+450	S436	R1	L008	748432	0
+451	S37	R1	L007	1103102	0
+452	S86	R1	L007	1844399	0
+453	S27	R1	L007	1718596	0
+454	S401	R1	L008	461961	0
+455	S516	R1	L008	1093789	0
+456	S38	R1	L007	1310212	0
+457	S462	R1	L008	861280	0
+458	S73	R1	L007	675534	0
+459	S108	R1	L007	731821	0
+45	S268	R1	L007	640439	0
+450	S436	R2	L008	748432	0
+451	S37	R2	L007	1103102	0
+452	S86	R2	L007	1844399	0
+453	S27	R2	L007	1718596	0
+454	S401	R2	L008	461961	0
+455	S516	R2	L008	1093789	0
+456	S38	R2	L007	1310212	0
+457	S462	R2	L008	861280	0
+458	S73	R2	L007	675534	0
+459	S108	R2	L007	731821	0
+45	S268	R2	L007	640439	0
+
+Done all fastq files
+Fri 19 Oct 00:30:32 BST 2018
+
+slurmstepd: error: Exceeded step memory limit at some point.

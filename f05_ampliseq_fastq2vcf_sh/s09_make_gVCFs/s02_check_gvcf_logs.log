@@ -1,0 +1,32 @@
+Job id: 9653312
+Job name: s02_check_gvcf_logs
+Allocated node: cpu-e-970
+Time: Mon 25 Feb 10:14:25 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs
+
+------------------ Output ------------------
+
+Check log files after making g.vcf-s
+Mon 25 Feb 10:14:25 GMT 2019
+
+--- Folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs
+bam_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s08_preprocessed_bam/idrl_bqsr_bam
+gvcf_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s09_raw_vcf/gvcf
+passed_samples: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs/s02_passed_samples.txt
+failed_samples: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s09_make_gVCFs/s02_failed_samples.txt
+
+Detected 541 bam files in the source folder
+Detected 541 g.vcf files in the output folder
+Detected 541 log files in the output folder
+
+Within the detrected log files:
+Passed samples: 541
+Failed samples: 0
+
+Done all tasks
+Mon 25 Feb 10:14:36 GMT 2019
+

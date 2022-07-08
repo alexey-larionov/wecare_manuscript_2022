@@ -1,0 +1,139 @@
+---
+title: "Explore data in R"
+author: "Alexey Larionov"
+date: "24 October 2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Summary
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+
+options(width=999)
+
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/rds/project/erf33/rds-erf33-medgen"
+project_folder=file.path(base_folder,"/users/alexey/wecare/reanalysis_wo_danish_2020")
+scripts_folder <- file.path(project_folder,"scripts","s03_read_to_R")
+setwd(scripts_folder)
+
+data_folder <- file.path(project_folder,"data","s03_read_to_R")
+
+# Required library
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+# VCF file name
+load(file.path(data_folder,"s01_import_vcf_to_R.RData"))
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(full_variants.df)
+
+dim(full_dp.mx)
+dim(full_gq.mx)
+dim(full_gt.mx)
+dim(full_ad.mx)
+
+```
+
+# Check FILTER and QUAL
+
+```{r}
+
+full_variants.df %>% 
+  group_by(FILTER) %>% 
+  summarise(counts=n()) %>% 
+  arrange(desc(counts))
+
+quantile(full_variants.df$QUAL)
+
+```
+
+# RS number vagueness  
+
+While looking for ATM c.6228del (p.Lew2077Phefs*5)  
+https://www.ncbi.nlm.nih.gov/clinvar/46511345/  
+
+- Chr11: 108317402 (on Assembly GRCh38)  
+- Chr11: 108188129 (on Assembly GRCh37)  
+
+I came accross thhis example of a vague RS number  
+
+```{r}
+
+colnames(full_variants.df)
+
+full_variants.df %>% 
+  filter(CHROM==11 & POS>108188000 & POS<108189000) %>% 
+  select(CHROM,POS,REF,ALT,vep_Existing_variation,vep_cDNA_position,vep_Protein_position,vep_Amino_acids)
+
+# Chr11: 108188129 (on Assembly GRCh37)
+# [76] "vep_HGVSc"                 "vep_HGVSp"                 "vep_cDNA_position"        
+# [79] "vep_CDS_position"          "vep_Protein_position"      "vep_Amino_acids"          
+# [82] "vep_Codons"                "vep_Existing_variation"    "vep_DISTANCE"             
+
+```
+
+# Save results
+
+```{r}
+
+#save.image(file.path(data_folder,"s01_import_vcf_to_R.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

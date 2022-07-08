@@ -1,0 +1,452 @@
+---
+title: "Select samples"
+author: "Alexey Larionov"
+date: "30 January 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Remove Danish samples, keep 1KGP-NFE  
+
+Also remove WECARE samples failed sequencing and other filters as the following:  
+
+  + low concordance with GWAS (when GWAS available)  
+  + carriers of BRCA1/2 and PSALB2  
+  + duplicates for QC  
+  
+Exclude non-polymotphic sites appeared after the samples removal.  
+Compare call rates per sample in WECARE and NFE.  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s04_select_samples")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s04_select_samples")
+
+# Libraries
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s01_add_phenotypes.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s04_select_samples")
+data_folder <- file.path(project_folder,"data","s04_select_samples")
+
+```
+
+# Check data
+
+Note that phenotypes are not synchronized with other data yet  
+
+```{r}
+
+ls()
+
+dim(full_variants.df)
+
+dim(full_dp.mx)
+dim(full_gq.mx)
+dim(full_gt.mx)
+dim(full_ad.mx)
+
+dim(phenotypes_with_danish.df)
+
+```
+
+# Add NFE to phenotypes.df
+
+```{r}
+
+# Explore wecare phenotypes data
+colnames(phenotypes_with_danish.df)
+dim(phenotypes_with_danish.df)
+
+# Make empty data frame for NFE phenotypes
+# with the same as the wecare phenotypes data frame
+nfe_phenotypes.df <- as.data.frame(matrix(rep(NA,198*40), nrow=198))
+colnames(nfe_phenotypes.df) <- colnames(phenotypes_with_danish.df)
+
+# Check where the columns with NFE end in genotypes matrix
+colnames(full_gt.mx)[198:199]
+
+# Get wes-id-s for NFE samples
+nfe_ids <- colnames(full_gt.mx)[1:198]
+
+# Populate columns in the data frame for NFE phenotypes
+nfe_phenotypes.df$wes_id <- nfe_ids
+"pass" -> nfe_phenotypes.df$filter
+-1 -> nfe_phenotypes.df$cc
+
+# Combine NFE and WECARE phenotypes data
+full_phenotypes.df <- rbind(nfe_phenotypes.df, phenotypes_with_danish.df)
+rownames(full_phenotypes.df) <- full_phenotypes.df$wes_id
+
+# Explore the combined phenotypes data frame
+dim(full_phenotypes.df)
+
+full_phenotypes.df[196:210,1:5]
+
+full_phenotypes.df %>% 
+  group_by(cc) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+full_phenotypes.df %>% 
+  select(wes_id,gwas_id,filter,cc) %>% 
+  filter(is.na(cc))
+
+full_phenotypes.df %>% 
+  group_by(filter) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+# Clean-up
+rm(nfe_phenotypes.df, phenotypes_with_danish.df, nfe_ids)
+
+```
+
+# Call rates before filtering
+
+## per sample
+
+```{r}
+
+# Function to calculate call rate
+call_rate.udf <- function(x){sum(!is.na(x))/length(x)}
+
+# Sample call rates
+call_rates <- apply(full_gt.mx,2,call_rate.udf)
+
+plot(call_rates, main="WECARE and NFE\nbefore sample QC filtering",
+     ylab="Call rate per sample", xlab="Sample No")
+abline(h=0.95, lty=2, col="red")
+abline(v=198.5, lty=2, col="red")
+
+# Clean-up
+rm(call_rates)
+
+```
+
+## per variant 
+
+```{r}
+
+# Call rates
+var_call_rates_nfe <- apply(full_gt.mx[,1:198],1,call_rate.udf)
+var_call_rates_wecare <- apply(full_gt.mx[,199:710],1,call_rate.udf)
+
+# Prepare data for ggplot hist
+data.df <- data.frame(nfe=var_call_rates_nfe, wecare=var_call_rates_wecare)
+melted_data.df <- melt(data.df)
+colnames(melted_data.df) <- c("group","call_rate")
+head(melted_data.df)
+
+# Make plot
+ggplot(melted_data.df,aes(x=call_rate, fill=group)) + 
+  geom_histogram(alpha=0.5, bins=15, position="identity", aes(y=..density..)) +
+  labs(title="WECARE and NFE",
+       subtitle="before sample QC filtering",
+       x = "Variant call rate", y ="Density")
+
+# Clean-up
+rm(var_call_rates_nfe, var_call_rates_wecare, data.df, melted_data.df)
+
+```
+
+# Prepare samples filter
+
+## Sequenced samples
+
+Importantly:  
+
+- Some of the samples failed sequencing and  
+- Some of the sequencing results do not represent any sample (e.g. if some samples were accidentally mixed during library preparation)  
+
+```{r}
+
+# Make an index for successfully sequenced wecare samples
+sequenced <- full_phenotypes.df$wes_id %in% colnames(full_gt.mx)
+
+# Count samples
+sum(sequenced)
+sum(!sequenced) # wecare failed sequencing
+
+```
+
+## Danish samples
+
+Danish consents do not allow studying known breast cancer risk genes, so danish samples are excluded from this analysis  
+
+```{r}
+
+# Explore
+full_phenotypes.df %>%
+  group_by(danish) %>%
+  summarise(count=n())
+
+# Make an index for danish samples
+danish <- full_phenotypes.df$danish & !is.na(full_phenotypes.df$danish)
+
+# Check index
+sum(danish)
+sum(!danish)
+
+```
+
+## Other filters
+
+Samples to be removed:  
+
+- low concordance with GWAs  
+- duplicates added for QC  
+- BRCA1/2 and PALB2 carriers  
+
+Keep eigenvector outliers sugested previously because eigenvectors will be re-calculated  
+
+```{r}
+
+# Explore filters
+full_phenotypes.df %>%
+  group_by(filter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+# Select samples passed filters
+pass_other_filters <- full_phenotypes.df$filter == "pass" |
+        full_phenotypes.df$filter == "eigenvectors_outlier"
+
+# Count samples
+sum(pass_other_filters)
+sum(!pass_other_filters)
+
+```
+
+## Combined filter
+
+```{r}
+
+# Combined filter : samples to remove
+#(will be used on rows of the phenotypes data frame)
+combined_filter <- !sequenced | danish | !pass_other_filters
+sum(combined_filter) # to exclude
+sum(!combined_filter) # to keep
+
+# Combined filter names (to use on columns of the genotype matrices)
+selected_samples_names <- full_phenotypes.df[!combined_filter,"wes_id"]
+length(selected_samples_names)
+
+# Clean-up
+rm(sequenced,danish,pass_other_filters)
+
+```
+
+# Apply filters
+
+```{r}
+
+table(combined_filter)
+
+# Update phenotypes table
+selected_phenotypes.df <- full_phenotypes.df[!combined_filter,]
+
+dim(selected_phenotypes.df)
+summary(as.factor(selected_phenotypes.df$cc))
+
+selected_phenotypes.df %>%
+  group_by(filter) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+selected_phenotypes.df %>%
+  group_by(danish) %>%
+  summarise(count=n()) %>%
+  arrange(desc(count))
+
+# Get names of samples from the updated phenotypes table
+selected_samples_names <- selected_phenotypes.df$wes_id
+
+# Update genotype matrices
+selected_dp.mx <- full_dp.mx[,selected_samples_names]
+selected_gq.mx <- full_gq.mx[,selected_samples_names]
+selected_gt.mx <- full_gt.mx[,selected_samples_names]
+selected_ad.mx <- full_ad.mx[,selected_samples_names]
+
+dim(selected_dp.mx)
+dim(selected_gq.mx)
+dim(selected_gt.mx)
+dim(selected_ad.mx)
+
+# Clean-up
+rm(combined_filter,selected_samples_names,
+   full_phenotypes.df,full_dp.mx,full_gq.mx,full_gt.mx,full_ad.mx)
+
+```
+
+# Remove non-polymorphic sites
+
+After removal of NFE and failed/danish WECARE samples some variant sites are becoming non-polymorphic in the dataset.
+
+```{r}
+
+# Function to detect uniform vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+    
+uniformity_check <- apply(selected_gt.mx,1,uniformity_check.udf)
+summary(as.factor(uniformity_check))
+non_uniform_sites <- uniformity_check == "Non-Uniform"
+
+# Update variants data frame
+selected_variants.df <- full_variants.df[non_uniform_sites,]
+
+# Update genotype matrices
+selected_dp.mx <- selected_dp.mx[non_uniform_sites,]
+selected_gq.mx <- selected_gq.mx[non_uniform_sites,]
+selected_gt.mx <- selected_gt.mx[non_uniform_sites,]
+selected_ad.mx <- selected_ad.mx[non_uniform_sites,]
+
+# Clean-up
+rm(uniformity_check.udf,uniformity_check,non_uniform_sites,full_variants.df)
+
+```
+
+# Call rates after samples filtering
+
+## per sample
+
+```{r}
+
+# Calculate call rates
+call_rates <- apply(selected_gt.mx,2,call_rate.udf)
+
+# Make plot
+plot(call_rates, main="WECARE and NFE\nafter sample QC filtering",
+     ylab="Call rate per sample", xlab="Sample No")
+abline(h=0.95, lty=2, col="red")
+abline(v=198.5, lty=2, col="red")
+
+# Clean-up
+rm(call_rates)
+
+```
+
+## per variant 
+
+```{r}
+
+# Calculate call rates: separately for NFE and WECARE
+var_call_rates_nfe <- apply(selected_gt.mx[,1:198],1,call_rate.udf)
+var_call_rates_wecare <- apply(selected_gt.mx[,199:535],1,call_rate.udf)
+
+# Prepare data for ggplot-histogram
+data.df <- data.frame(nfe=var_call_rates_nfe, wecare=var_call_rates_wecare)
+melted_data.df <- melt(data.df)
+colnames(melted_data.df) <- c("group","call_rate")
+head(melted_data.df)
+
+# Make plot
+ggplot(melted_data.df,aes(x=call_rate, fill=group)) + 
+  geom_histogram(alpha=0.5, bins=15, position="identity", aes(y=..density..)) +
+  labs(title="WECARE and NFE",
+       subtitle="after sample QC filtering",
+       x = "Variant call rate", y ="Density")
+
+# Clean-up
+rm(var_call_rates_nfe, var_call_rates_wecare, data.df, melted_data.df, call_rate.udf)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(selected_phenotypes.df)
+dim(selected_variants.df)
+dim(selected_dp.mx)
+dim(selected_gq.mx)
+dim(selected_gt.mx)
+dim(selected_ad.mx)
+
+# Check that the tables and matrices are in sync
+sum(selected_phenotypes.df$wes_id != colnames(selected_dp.mx))
+sum(selected_phenotypes.df$wes_id != colnames(selected_gq.mx))
+sum(selected_phenotypes.df$wes_id != colnames(selected_gt.mx))
+sum(selected_phenotypes.df$wes_id != colnames(selected_ad.mx))
+
+sum(selected_variants.df$ID != rownames(selected_dp.mx))
+sum(selected_variants.df$ID != rownames(selected_gq.mx))
+sum(selected_variants.df$ID != rownames(selected_gt.mx))
+sum(selected_variants.df$ID != rownames(selected_ad.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s02_select_samples.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

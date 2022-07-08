@@ -1,0 +1,294 @@
+---
+title: "Ampliseq wecare only: filter variants by call rate"
+author: "Alexey Larionov"
+date: "23 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Remove ~32% variants with low call rate.  
+
+The 0.85 threshold is selected because SKAT requires at least 85% call rate per variant.  
+
+Check call rates (per variant and per sample) before and after filtering.  
+
+Input data: 5,624 variants x 389 samples (194UBC + 195CBC)  
+Output data: 3,840 variants x 389 samples (194UBC + 195CBC)  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+setwd(scripts_folder)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s02_filter_genotypes_by_alt_fraction.RData"))
+
+# Update folders (just in case)
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+dim(dp.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Genotypes before filtering
+
+```{r}
+
+# Fraction of NA genotypes
+sum(is.na(gt_add.mx))/(nrow(gt_add.mx)*ncol(gt_add.mx))
+gt_add.mx[1:5,1:5]
+
+```
+
+# Variant call rates before filtering
+
+```{r}
+
+# Function to calculate call rate
+call_rate.udf <- function(x){1-sum(is.na(x))/length(x)}
+
+# Call rates per variant
+var_call_rate <- apply(gt_add.mx,1,call_rate.udf)
+
+hist(var_call_rate, breaks=50, main="Call rate per variant", xlab="Call rates")
+abline(v=0.85, lty=2, col="red")
+
+plot(var_call_rate, main="Call rate per variant")
+abline(h=0.85, lty=2, col="red")
+
+```
+
+# Sample call rates before filtering
+
+```{r}
+
+# Call rates per sample
+case_call_rate <- apply(gt_add.mx,2,call_rate.udf)
+
+hist(case_call_rate, xlim=c(0,1), main="Call rate per sample", xlab="Call rates")
+abline(v=0.5, lty=2, col="red")
+
+plot(case_call_rate, ylim=c(0,1), main="Call rate per sample")
+abline(h=0.5, lty=2, col="red")
+
+low_call_rate_indices <- which(case_call_rate < 0.5)
+low_call_rate_values <- case_call_rate[low_call_rate_indices]
+low_call_rate_samples <- substr(names(low_call_rate_values),1,3)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=c(1,3,1), cex=0.7)
+
+low_call_rate_values
+
+# Clean-up
+rm(case_call_rate,
+   low_call_rate_indices,low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Filter by variants call rates
+
+```{r}
+
+# Check the fraction of variants to be removed
+sum(var_call_rate < 0.85)/length(var_call_rate)
+
+# Filter
+selected_variants <- var_call_rate >= 0.85
+sum(selected_variants)
+
+gt_add.mx <- gt_add.mx[selected_variants,]
+gt_num.mx <- gt_num.mx[selected_variants,]
+gt_chr.mx <- gt_chr.mx[selected_variants,]
+dp.mx <- dp.mx[selected_variants,]
+variants.df <- variants.df[selected_variants,]
+
+# Check result
+dim(gt_add.mx)
+dim(variants.df)
+
+# Clean-up
+rm(selected_variants)
+
+```
+
+# Genotypes after filtering
+
+```{r}
+
+# Fraction of NA genotypes
+sum(is.na(gt_add.mx))/(nrow(gt_add.mx)*ncol(gt_add.mx))
+gt_add.mx[1:5,1:5]
+
+```
+
+# Variant call rates after filtering
+
+```{r}
+
+# Call rates per variant
+var_call_rate <- apply(gt_add.mx,1,call_rate.udf)
+
+hist(var_call_rate, breaks=50, main="Call rate per variant", 
+     xlim=c(0,1), xlab="Call rates")
+abline(v=0.85, lty=2, col="red")
+
+plot(var_call_rate, ylim=c(0,1),main="Call rate per variant")
+abline(h=0.85, lty=2, col="red")
+
+# Clean-up
+rm(var_call_rate)
+
+```
+
+# Sample call rates after filtering
+
+```{r}
+
+# Call rates per sample
+case_call_rate <- apply(gt_add.mx,2,call_rate.udf)
+
+hist(case_call_rate, xlim=c(0,1), main="Call rate per sample", xlab="Call rates")
+abline(v=0.5, lty=2, col="red")
+
+plot(case_call_rate, ylim=c(0,1), main="Call rate per sample")
+abline(h=0.5, lty=2, col="red")
+
+low_call_rate_indices <- which(case_call_rate < 0.75)
+low_call_rate_values <- case_call_rate[low_call_rate_indices]
+low_call_rate_samples <- substr(names(low_call_rate_values),1,3)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=c(1,3,1), cex=0.7)
+
+low_call_rate_values
+
+# Clean-up
+rm(call_rate.udf,case_call_rate,
+   low_call_rate_indices,low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+dim(dp.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s03_filter_variants_by_call_rate.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

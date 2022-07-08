@@ -1,0 +1,270 @@
+---
+title: "Update the main dataset with relatedness and PCA results"
+author: "AL"
+date: "31/01/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Summary
+
+- Add updated phenotype data frame that includes PC-s  
+- Sync genotypes with the updated phenotypes:  
+    + Removes related samples (if any) detected during PCA pre-processing  
+    + Removes outliers detected in PCA (if any) from genotypes matrix  
+- Remove non-polymorphic sites (if any) appeared after the samples filtering  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+
+# Libraries
+library(reshape2)
+library(ggplot2)
+
+```
+
+# Load main dataset except phenotypes  
+
+```{r}
+
+# Load main data
+load(file.path(project_folder,"data","s06_qc_filters","s04_filter_by_sample_call_rates.RData"))
+
+# Remove phenotype data with related and outliers (if any) and without PC-s
+dim(phenotypes.df)
+colnames(phenotypes.df)
+rm(phenotypes.df)
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+
+```
+
+# Load updated phenotypes
+
+```{r}
+
+# Load updated phenotypes: without related and outliers (if any) and with PC-s
+load(file.path(data_folder,"s04_phenotypes_with_PCs.RData")) 
+dim(phenotypes_with_PCs.df)
+colnames(phenotypes_with_PCs.df)
+
+# Update folders (just in case)
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+
+```
+
+# Sync genotypes with updated phenotypes
+
+```{r}
+
+# Check data
+dim(phenotypes_with_PCs.df)
+dim(genotypes.mx)
+
+# Update genotypes
+genotypes.mx <- genotypes.mx[,phenotypes_with_PCs.df$sample.ID]
+dim(genotypes.mx)
+
+# Rename phenotypes data frame
+phenotypes.df <- phenotypes_with_PCs.df
+
+# Clean-up
+rm(phenotypes_with_PCs.df)
+
+```
+
+# Remove non-polymorphic sites
+
+After samples filtering some variant sites may become non-polymorphic
+
+```{r}
+
+# Function to detect uniform numeric vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+    
+uniformity_check <- apply(genotypes.mx,1,uniformity_check.udf)
+summary(as.factor(uniformity_check))
+non_uniform_sites <- uniformity_check == "Non-Uniform"
+
+# Update matrices and data-frame(s)
+genotypes.mx <- genotypes.mx[non_uniform_sites,]
+variants.df <- variants.df[non_uniform_sites,]
+
+# Check result
+dim(genotypes.mx)
+dim(variants.df)
+
+# Clean-up
+rm(uniformity_check.udf,uniformity_check,non_uniform_sites)
+
+```
+
+# Genotypes missingness after filtering
+
+```{r}
+
+# Fraction of NA genotypes
+sum(is.na(genotypes.mx))/(nrow(genotypes.mx)*ncol(genotypes.mx))
+genotypes.mx[1:5,1:5]
+
+```
+
+# Call rates
+
+## per variant
+
+0.85 variant call rate is required for **each** NFE and WECARE for comparability of the data  
+
+```{r}
+
+# Function to calculate call rate
+call_rate.udf <- function(x){1-sum(is.na(x))/length(x)}
+
+# Make separate gq matrices for nfe and wecare
+table(phenotypes.df$cc,useNA = "always")
+genotypes_nfe.mx <- genotypes.mx[,phenotypes.df$cc==-1]
+genotypes_wecare.mx <- genotypes.mx[,phenotypes.df$cc!=-1]
+
+dim(genotypes_nfe.mx)
+dim(genotypes_wecare.mx)
+
+genotypes_nfe.mx[1:5,1:5]
+genotypes_wecare.mx[1:5,1:5]
+
+# Call rates per variant (separately for NFE and WECARE !)
+var_call_rates_nfe <- apply(genotypes_nfe.mx,1,call_rate.udf)
+var_call_rates_wecare <- apply(genotypes_wecare.mx,1,call_rate.udf)
+
+# Prepare data for ggplot hist
+data.df <- data.frame(nfe=var_call_rates_nfe, wecare=var_call_rates_wecare)
+molten.df <- melt(data.df)
+colnames(molten.df) <- c("group","call_rate")
+head(molten.df)
+
+# Make plot
+ggplot(molten.df, aes(x=call_rate, fill=group)) + 
+  geom_histogram(alpha=0.5, bins=15, position="identity", aes(y=..density..)) +
+  labs(title="Variant call rates",
+       x = "Variant call rate", y ="Density")
+
+# Minimal call rate per sub-group
+min(c(var_call_rates_nfe,var_call_rates_wecare))
+
+# Clean-up
+rm(var_call_rates_nfe, var_call_rates_wecare, data.df, molten.df,
+   genotypes_nfe.mx, genotypes_wecare.mx)
+
+```
+
+## per sample
+
+```{r}
+
+# Calculate call rates
+case_call_rates <- apply(genotypes.mx,2,call_rate.udf)
+
+# Plot
+plot(case_call_rates, main="Call rates per sample",
+     ylab="Call rate per sample", xlab="Sample No")
+abline(v=198.5, lty=2, col="red")
+
+text(100,0.85,"nfe")
+text(400,0.85,"wecare")
+
+low_call_rate_indices <- which(case_call_rates < 0.9)
+low_call_rate_values <- case_call_rates[low_call_rate_indices]
+low_call_rate_samples <- names(low_call_rate_values)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=c(1,4,4,2,4),cex=0.5)
+
+# Clean-up
+rm(low_call_rate_indices,call_rate.udf,case_call_rates,
+   low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save(list=c("genotypes.mx","phenotypes.df","variants.df"),
+     file=file.path(data_folder,"s06_update_main_dataset.RData"))
+
+```
+
+# End section
+
+```{r}
+
+ls()
+Sys.time()
+gc()
+
+```

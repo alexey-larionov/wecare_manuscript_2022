@@ -1,0 +1,35 @@
+Job id: 28352628
+Allocated node: cpu-e-14
+Mon  7 Sep 13:57:21 BST 2020
+
+Job name: s01_split
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s01_split
+
+ ------------------ Job progress ------------------ 
+
+Started s01_split: 07Sep2020_13:57:21
+
+Variant counts before splitting:
+
+Number of samples: 710
+Number of SNPs:    327601
+Number of INDELs:  17060
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   343372
+
+Splitting multiallelic variants ...
+
+Variant counts after splitting: 
+
+Number of samples: 710
+Number of SNPs:    329394
+Number of INDELs:  26518
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   361604
+
+Done: 07Sep2020_14:02:52
+

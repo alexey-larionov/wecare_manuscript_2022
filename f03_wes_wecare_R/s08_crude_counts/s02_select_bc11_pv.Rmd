@@ -1,0 +1,337 @@
+---
+title: "WES: select BC11 pathogenic variants, WECARE only"
+author: "Alexey Larionov"
+date: "09 Mar 2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Select functionally important variants in BC11
+
+Variants selection: 
+
+**Known or predicted pathogenic**  
+
+*Known pathogenic*  
+- Annotated as pathogenic/likely pathogenic in ClinVar (v?)  
+
+*Predicted pathogenic*  
+- LoF (HIGH impact by VEP)  
+- Consensus high grade missenses: deleterious by SIFT & probably_damaging by PolyPhen & CADD >=25  
+
+**Rare**  
+- Rare (AF in Wecare < 0.01)  
+
+**Exclude known benign**  
+- Excluding known benign in ClinVar  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_2022","wes","s01_wes_wecare_only")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+# folder already exists and contains a text file with BC11 genes
+
+# Libraries
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s01_crude_counts_per_variant.RData"))
+
+# Update working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_2022","wes","s01_wes_wecare_only")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+
+bc11_genes <- scan(file.path(data_folder,"bc11_genes.txt"),what="character")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+table(phenotypes.df$cc, useNA = "always")
+
+# Check list of genes
+bc11_genes
+
+```
+
+# Select variants 
+
+## Keep only variants in the selected genes
+
+```{r}
+
+bc11_variants.df <- variants.df[variants.df$vep_SYMBOL %in% bc11_genes,]
+dim(bc11_variants.df)
+
+```
+
+## Select known (likely) pathogenic by ClinVar
+
+```{r}
+
+# Explore ClinVar annotations
+bc11_variants.df %>% 
+  group_by(CLNSIG) %>% 
+  summarise(counts=n()) %>% 
+  arrange(desc(counts))
+
+# Select known_pathogenic variants
+known_pathogenic <- 
+  grepl("Pathogenic",bc11_variants.df$CLNSIG) | 
+  grepl("Likely_pathogenic",bc11_variants.df$CLNSIG)
+
+# Check number of variants
+sum(known_pathogenic)
+
+```
+
+## Predicted lof-s as defined by VEP IMPACT
+
+```{r}
+
+# Select predicted LoF-s
+predicted_lof <- bc11_variants.df$vep_IMPACT == "HIGH"
+
+# Check number of variants
+sum(predicted_lof)
+
+```
+
+## Consensus high grade missenses  
+
+### Split SIFT and PolyPhen
+
+Should have been done earlier - during the data clean-up
+
+```{r}
+
+# Split SIFT
+bc11_variants.df <- 
+  bc11_variants.df %>% 
+  mutate(SIFT_call=sub("\\(.*\\)","",vep_SIFT)) %>% 
+  mutate(SIFT_score=as.numeric(
+    sub(".*\\(","", sub("\\)","",vep_SIFT)))) %>% 
+  select(-vep_SIFT)
+
+bc11_variants.df %>% 
+  group_by(SIFT_call) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+# Split PolyPhen
+bc11_variants.df <- 
+  bc11_variants.df %>% 
+  mutate(PolyPhen_call=sub("\\(.*\\)","",vep_PolyPhen)) %>% 
+  mutate(PolyPhen_score=as.numeric(
+    sub(".*\\(","", sub("\\)","",vep_PolyPhen)))) %>% 
+  select(-vep_PolyPhen)
+
+bc11_variants.df %>% 
+  group_by(PolyPhen_call) %>% 
+  summarise(count=n()) %>% 
+  arrange(desc(count))
+
+```
+
+### Explore CADD
+
+Redundant common sense checks
+
+```{r}
+
+# Check types of data and missed data
+class(bc11_variants.df$vep_CADD_PHRED)
+head(bc11_variants.df$vep_CADD_PHRED)
+sum(is.na(bc11_variants.df$vep_CADD_PHRED))
+
+# Check one variant with missed CADD: intronic deletion in ATM, irrelevant to the analysis
+bc11_variants.df[is.na(bc11_variants.df$vep_CADD_PHRED),
+                c("vep_SYMBOL","vep_VARIANT_CLASS","vep_IMPACT","vep_Consequence",
+                  "vep_Existing_variation","CLNSIG","vep_gnomAD_NFE_AF","vep_CADD_PHRED")]
+
+```
+
+### Consensus high grade missenses
+
+Note excluding the missed data - for non-missense variants etc  
+
+```{r}
+
+# Select variants
+consensus_high_grade_missenses <- 
+  bc11_variants.df$SIFT_call == "deleterious" & !is.na(bc11_variants.df$SIFT_call) & 
+  bc11_variants.df$PolyPhen_call == "probably_damaging" & !is.na(bc11_variants.df$PolyPhen_call) & 
+  bc11_variants.df$vep_CADD_PHRED >=25 & !is.na(bc11_variants.df$vep_CADD_PHRED)
+
+# Check number of variants
+sum(consensus_high_grade_missenses)
+
+```
+
+## Rare variants
+
+```{r}
+
+# Explore rare variants
+min(bc11_variants.df$total_af, na.rm=T)
+max(bc11_variants.df$total_af, na.rm=T) # No variants with MAF<0.01 and AF>0.99
+sum(is.na(bc11_variants.df$total_af)) # No missed AF data
+
+# Select rare variants
+rare <- bc11_variants.df$total_af <= 0.01
+
+# Check the number of variants
+sum(rare)
+
+```
+
+## Known benign
+
+```{r}
+
+# Explore ClinVar annotations
+bc11_variants.df %>% 
+  group_by(CLNSIG) %>% 
+  summarise(counts=n()) %>% 
+  arrange(desc(counts))
+
+# Select known benign
+known_benign <- 
+  grepl("Benign",bc11_variants.df$CLNSIG) | 
+  grepl("Likely_benign",bc11_variants.df$CLNSIG)
+
+# Check the number of variants
+sum(known_benign)
+
+```
+
+## Combine functionaly important variants  
+
+```{r}
+
+# Functionally important variants
+fiv <- (predicted_lof | known_pathogenic | consensus_high_grade_missenses) & 
+                rare & 
+               !known_benign
+
+# Check number of variants
+sum(fiv)
+
+# List variants (all vep_BIOTYPE is protein_coding)
+bc11_fiv.df <- bc11_variants.df[fiv,] %>% 
+  select(ID,vep_SYMBOL,vep_Consequence,vep_IMPACT,CLNSIG,CLNREVSTAT,PolyPhen_call,SIFT_call,
+         vep_CADD_PHRED,vep_gnomAD_NFE_AF,
+         total_ac,total_an,total_af,
+         controls_ac,controls_an,controls_af,
+         cases_ac,cases_an,cases_af)
+
+bc11_fiv.df
+write.table(bc11_fiv.df, 
+            file.path(data_folder,"bc11_fiv_wes_wecare_only.txt"),
+            quote=F,sep ="\t",row.names=F,col.names=T)
+#View(bc11_fiv.df)
+
+# Clean-up
+rm(predicted_lof,known_pathogenic,rare,fiv,consensus_high_grade_missenses,known_benign)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(bc11_variants.df)
+dim(bc11_fiv.df)
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+table(phenotypes.df$cc, useNA = "always")
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s02_select_bc11_pv.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

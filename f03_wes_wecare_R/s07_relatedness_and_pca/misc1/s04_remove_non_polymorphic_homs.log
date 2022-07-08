@@ -1,0 +1,36 @@
+Job id: 29670646
+Allocated node: cpu-e-101
+Mon  5 Oct 20:15:40 BST 2020
+
+Job name: s04_remove_non-polymorphic
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s05_pca
+
+ ------------------ Job progress ------------------ 
+
+Started s04_remove_non-polymorphic
+Mon  5 Oct 20:15:40 BST 2020
+
+Source vcf counts
+
+Number of samples: 336
+Number of SNPs:    230680
+Number of INDELs:  14012
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   244692
+
+Excluding variants with AC=0 in minor allele...
+
+Counts in the vcf file with new tags
+Number of samples: 336
+Number of SNPs:    229323
+Number of INDELs:  13839
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   243162
+
+Done
+Mon  5 Oct 20:17:51 BST 2020
+

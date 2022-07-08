@@ -1,0 +1,288 @@
+---
+title: "Ampliseq: s05_remove_nfe"
+author: "Alexey Larionov"
+date: "21 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary  
+
+Remove 198 NFE cases and variants that had been detected in the NFE cases only  
+
+Input data: 11,698 vars x 587 samples (194UBC + 195CBC + 198NFFE)  
+Output data: 10,864 variants x 389 samples (194UBC + 195CBC)    
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clean-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s04_select_samples")
+scripts_folder <- file.path(base_folder,"scripts","s04_select_samples")
+setwd(scripts_folder)
+
+```
+
+# Load data  
+
+```{r}
+
+load(file.path(data_folder, "s04_exclude_danish.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s04_select_samples")
+scripts_folder <- file.path(base_folder,"scripts","s04_select_samples")
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(ad.mx)
+dim(ref.mx)
+dim(alt.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(variants.df)
+colnames(variants.df)
+
+dim(meta.df)
+
+# Check consistence of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(ad.mx))
+sum(rownames(gt_add.mx) != rownames(ref.mx))
+sum(rownames(gt_add.mx) != rownames(alt.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(ref.mx))
+sum(colnames(gt_add.mx) != colnames(alt.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df))
+
+```
+
+# Remove NFE samples  
+
+```{r}
+
+# Prepare lists of samples
+table(phenotypes.df$cc, useNA = "always")
+
+ampliseq_samples <- phenotypes.df$cc %in% c(0,1)
+nfe_samples <- phenotypes.df$cc == -1
+
+sum(ampliseq_samples)
+sum(nfe_samples)
+
+colnames(gt_add.mx)[ampliseq_samples]
+colnames(gt_add.mx)[nfe_samples]
+
+# Remove NFE
+gt_add.mx <- gt_add.mx[,ampliseq_samples]
+gt_num.mx <- gt_num.mx[,ampliseq_samples]
+gt_chr.mx <- gt_chr.mx[,ampliseq_samples]
+
+ad.mx <- ad.mx[,ampliseq_samples]
+ref.mx <- ref.mx[,ampliseq_samples]
+alt.mx <- alt.mx[,ampliseq_samples]
+
+gq.mx <- gq.mx[,ampliseq_samples]
+dp.mx <- dp.mx[,ampliseq_samples]
+
+phenotypes.df <- phenotypes.df[ampliseq_samples,]
+
+# Check result
+sum(colnames(gt_add.mx) != rownames(phenotypes.df))
+dim(gt_add.mx)
+dim(phenotypes.df)
+
+gt_add.mx[1:5,1:5]
+
+phenotypes.df[1:5,1:5]
+phenotypes.df[385:389,1:5]
+
+table(phenotypes.df$cc, useNA = "always")
+table(phenotypes.df$danish, useNA = "always")
+table(phenotypes.df[,c("cc","danish")], useNA = "always")
+
+# Clean-up
+rm(ampliseq_samples,nfe_samples)
+
+```
+
+# Remove non-polymorphic sites
+
+```{r}
+
+# Function to detect uniform numeric vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+
+# Make the filter
+uniformity_check <- apply(gt_add.mx,1,uniformity_check.udf)
+summary(as.factor(uniformity_check))
+non_uniform_sites <- uniformity_check == "Non-Uniform"
+
+# Remove non-polymorphic variants
+gt_add.mx <- gt_add.mx[non_uniform_sites,]
+gt_num.mx <- gt_num.mx[non_uniform_sites,]
+gt_chr.mx <- gt_chr.mx[non_uniform_sites,]
+
+ad.mx <- ad.mx[non_uniform_sites,]
+alt.mx <- alt.mx[non_uniform_sites,]
+ref.mx <- ref.mx[non_uniform_sites,]
+
+dp.mx <- dp.mx[non_uniform_sites,]
+gq.mx <- gq.mx[non_uniform_sites,]
+
+variants.df <- variants.df[non_uniform_sites,]
+
+# Check result
+dim(gt_add.mx)
+dim(variants.df)
+
+table(phenotypes.df$cc, useNA = "always")
+table(phenotypes.df$danish, useNA = "always")
+table(phenotypes.df[,c("cc","danish")], useNA = "always")
+
+# Clean-up
+rm(uniformity_check.udf, uniformity_check, non_uniform_sites)
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(ad.mx)
+dim(ref.mx)
+dim(alt.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(variants.df)
+dim(meta.df)
+
+# Check consistence of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(ad.mx))
+sum(rownames(gt_add.mx) != rownames(ref.mx))
+sum(rownames(gt_add.mx) != rownames(alt.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(ad.mx))
+sum(colnames(gt_add.mx) != colnames(ref.mx))
+sum(colnames(gt_add.mx) != colnames(alt.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df))
+
+quantile(phenotypes.df$sub_dx_age)
+mean(phenotypes.df$sub_dx_age)
+
+```
+
+# Save results
+
+```{r}
+
+write.table(phenotypes.df,
+            file.path(data_folder, "s05_phenotypes.txt"),
+            quote=F,row.names=F,sep="\t")
+
+save.image(file.path(data_folder, "s05_remove_nfe.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

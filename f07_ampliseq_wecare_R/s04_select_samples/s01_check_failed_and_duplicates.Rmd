@@ -1,0 +1,401 @@
+---
+title: "Ampliseq: check duplicates"
+author: "Alexey Larionov"
+date: "21 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary  
+
+6 samples failed sequencing because they had low call rates, clearly distinctive from the other samples (<60%):  
+
+- 108_S482_L008  
+- 152_S511_L008  
+- 306_S410_L008  
+- 346_S276_L008  
+- 384_S486_L008  
+- 498_S507_L008  
+
+Concordance rates were checked using common variants in each-to-each-case analysis for the remaining non-failed cases (see summary in **concordance_AL14Aug2018.xlsx**).  
+
+The purpose was to find the intentional duplicates introduced for QC purposes.  
+
+The concordance analysis detected 11 pairs of intended QC duplicates:  
+
+- 40_S189_L007 - 41_S328_L008  
+- 76_S299_L008 - 77_S370_L008  
+- 234_S381_L008 - 235_S535_L008  
+- 244_S175_L007 - 245_S59_L007  
+- 280_S173_L007 - 281_S185_L007    **both should be kept as explained by US collaborators**  
+- 347_S36_L007 - 348_S17_L007  
+- 398_S161_L007 - 399_S255_L007  
+- 436_S178_L007 - 437_S177_L007  
+- 517_S450_L008 - 518_S384_L008  
+- 527_S233_L007 - 528_S275_L008  
+- 539_S288_L008 - 540_S461_L008  
+
+The sample with lower coverage will be excluded fro analysis from each of the duplicated pairs.  
+
+One pair of intended duplicates was not detected because  
+a sample from this pair failed sequencing (108):  
+
+- 108_S482_L008 - 109_S484_L008  
+
+The remaining sample 109 will be kept in the analysis.  
+
+Also, the concordance analysis detected one pair of additional duplicates (with distinct phenotypes):  
+
+- 270_S70_L007 - 351_S71_L007  
+
+These non-intended duplicates **are located near each other on the plate**, so it could be a lab mistake during dispensing/sequencing. **Both** of these samples will be excluded from analysis.  
+
+In the previous versions of analysis there was another pair of unexpected duplicates:  
+
+- 386_S273_L008 - 391_S376_L008  
+
+However, in Nov 2021 sample 391 was excluded from the analysis.  So, sample 386 is now retained in the current version of analysis.  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s04_select_samples")
+#dir.create(data_folder)
+scripts_folder <- file.path(base_folder,"scripts","s04_select_samples")
+setwd(scripts_folder)
+
+```
+
+# Read data
+
+```{r}
+
+# Load data
+load(file.path(base_folder,"data","s03_read_data","s04_add_phenotypes.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s04_select_samples")
+scripts_folder <- file.path(base_folder,"scripts","s04_select_samples")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(ad.mx)
+dim(alt.mx)
+dim(ref.mx)
+
+dim(dp.mx)
+dim(gq.mx)
+
+dim(meta.df)
+
+dim(phenotypes.df)
+dim(variants.df)
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+write.table(phenotypes.df,
+            file.path(data_folder, "s01_phenotypes.txt"),
+            quote=F,row.names=F,sep="\t")
+
+```
+
+# Check call rates
+
+```{r}
+
+call_rate.udf <- function(x)(1 - sum(is.na(x))/length(x))
+
+samples_call_rate <- apply(gt_add.mx,2,call_rate.udf)
+
+failed_samples <- samples_call_rate < 0.6
+
+failed_samples_names <- colnames(gt_add.mx)[failed_samples]
+failed_samples_names
+
+plot(samples_call_rate, main="Call rates per sample\nbefore variants filtering", xlab="samples_index")
+abline(h=0.6, lty=2, col="red")
+abline(v=541.5, lty=2, col="red")
+
+txt_lbl <- substr(colnames(gt_add.mx)[failed_samples],1,3)
+txt_y <- samples_call_rate[failed_samples]
+txt_x <- which(samples_call_rate < 0.6)
+text(txt_x,txt_y,txt_lbl,cex=0.7,pos=c(3,3,3,1,3,3))
+
+text(250,0.7,"wecare ampliseq",cex=0.8)
+text(650,0.7,"NFFE",cex=0.8)
+
+x510 <- which(phenotypes.df$Sample_num==510)
+y510 <- samples_call_rate[x510]
+text(x510,y510,"510",pos=1,cex=0.7)
+
+rm(txt_lbl,txt_x,txt_y,failed_samples,samples_call_rate,call_rate.udf,x510,y510)
+
+```
+ 
+# Select wecare data
+
+```{r}
+
+# Select wecare
+wecare_genotypes.mx <- gt_add.mx[,phenotypes.df$cc != -1]
+dim(wecare_genotypes.mx)
+
+# Exclude failed samples
+wecare_genotypes.mx <- wecare_genotypes.mx[,! colnames(wecare_genotypes.mx) %in% failed_samples_names]
+dim(wecare_genotypes.mx)
+
+# Clean-up
+rm(failed_samples_names)
+
+```
+
+# Calculate concordance matrix  
+
+Use common variants in cases with call rate > 0.6
+
+The chunk uses slow looping, but it takes < 1min and doesn't need to be optimized because of the small data size  
+
+```{r}
+
+# Calculate AF
+wecare_af <- apply(wecare_genotypes.mx, 1, sum, na.rm=T)/(ncol(wecare_genotypes.mx)*2)
+length(wecare_af)
+hist(wecare_af)
+
+# Select common variants
+common_vars <- wecare_af >= 0.05 & wecare_af <= 0.95
+sum(common_vars)
+gt_com.mx <- wecare_genotypes.mx[common_vars,]
+dim(gt_com.mx)
+
+# Initialize the concordance matrix
+cnc.mx <- matrix(NA, ncol=ncol(gt_com.mx), nrow=ncol(gt_com.mx))
+colnames(cnc.mx) <- colnames(gt_com.mx)
+rownames(cnc.mx) <- colnames(gt_com.mx)
+cnc.mx[1:5,1:5]
+
+# Initialize counts matrix
+cnt.mx <- matrix(NA, ncol=ncol(gt_com.mx), nrow=ncol(gt_com.mx))
+colnames(cnt.mx) <- colnames(gt_com.mx)
+rownames(cnt.mx) <- colnames(gt_com.mx)
+cnt.mx[1:5,1:5]
+
+# Calculate concordances
+for(sample_1 in colnames(gt_com.mx)){
+  for(sample_2 in colnames(gt_com.mx)){
+    
+    # Get vectors of variants for both samples
+    smp1 <- gt_com.mx[,sample_1]
+    smp2 <- gt_com.mx[,sample_2]
+    
+    # Calculate concordance
+    total <- sum(!is.na(smp1) & !is.na(smp2))
+    concordant <- sum(smp1==smp2, na.rm=T)
+    concordance_rate <- concordant / total
+    
+    # Write result
+    if(sample_1 == sample_2){
+      NA  -> cnt.mx[sample_1,sample_2]
+      NA  -> cnc.mx[sample_1,sample_2]
+    }else{
+      total -> cnt.mx[sample_1,sample_2]
+      concordance_rate -> cnc.mx[sample_1,sample_2]
+    }
+  }
+}
+
+# Check results
+cnt.mx[1:5,1:5]
+cnc.mx[1:5,1:5]
+
+write.table(cnc.mx,
+            file.path(data_folder, "s01_conc_matrix.txt"),
+            quote=F,sep="\t")
+
+# Clean-up
+rm(common_vars, gt_com.mx, sample_1, sample_2, smp1, smp2,
+   total, concordant, concordance_rate, wecare_af)
+
+```
+
+# Explore concordance matrix
+
+```{r}
+
+# No missed values (except self-concordance/count)
+dim(cnt.mx)
+sum(is.na(cnt.mx))
+sum(is.na(cnc.mx))
+
+# Histograms
+
+hist(cnt.mx)
+quantile(cnt.mx, na.rm=T)
+mean(cnt.mx, na.rm=T)
+
+hist(cnc.mx, ylim=c(0,65000), lab=T)
+abline(v=0.8,lty=2,col="red")
+
+hist(cnc.mx[cnc.mx > 0.8], lab=T, ylim=c(0,7))
+sum(cnc.mx > 0.85, na.rm=T)
+sum(cnc.mx == 1, na.rm=T)
+
+# Make list of most similar samples (concordance > 0.94)
+conc_cases.mx <- matrix(nrow=0, ncol=4)
+c("sample_1","sample_2","count","concordance") -> colnames(conc_cases.mx)
+for(sample_1 in rownames(cnc.mx)){
+  for(sample_2 in colnames(cnc.mx)){
+    if(sample_1!=sample_2 & cnc.mx[sample_1,sample_2] > 0.8 ){
+      conc_cases.mx <- rbind(conc_cases.mx, c(sample_1,sample_2,
+                                              cnt.mx[sample_1,sample_2],
+                                              cnc.mx[sample_1,sample_2]))
+    }
+  }
+}
+
+# Check result
+conc_cases.mx
+
+write.table(conc_cases.mx,
+            file.path(data_folder, "s01_conc_cases.txt"),
+            quote=F,row.names=F,sep="\t")
+
+# Heatmaps
+heatmap(cnc.mx, Rowv=NA, Colv=NA, scale='none', 
+        col = cm.colors(256), labRow=NA, labCol = NA,
+        main="Cases concordance (common variants)")
+
+heatmap(cnc.mx, scale='none', 
+        col = cm.colors(256), labRow=NA, labCol = NA,
+        main="Cases concordance (common variants, clustered)")
+
+# Clean-up
+rm(sample_1, sample_2)
+
+```
+
+# Check phenotypes annotations in concordant cases  
+
+## Expected duplicates  
+
+Phenotype records for expected duplicates are identical,  
+except for one case, which is intentionally used twice in different capacities  
+(once as case and once as control)  
+
+```{r}
+
+dim(phenotypes.df)
+colnames(phenotypes.df)
+
+x <- phenotypes.df["40_S189_L007",] != phenotypes.df["41_S328_L008",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+x <- phenotypes.df["76_S299_L008",] != phenotypes.df["77_S370_L008",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+x <- phenotypes.df["234_S381_L008",] != phenotypes.df["235_S535_L008",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+x <- phenotypes.df["244_S175_L007",] != phenotypes.df["245_S59_L007",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+x <- phenotypes.df["280_S173_L007",] != phenotypes.df["281_S185_L007",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+phenotypes.df[c("280_S173_L007","281_S185_L007"),x] 
+# cc and rstime differ because used in different capacity for different pairs
+# **both samples should be kept in analysis**  
+
+x <- phenotypes.df["347_S36_L007",] != phenotypes.df["348_S17_L007",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+ 
+x <- phenotypes.df["398_S161_L007",] != phenotypes.df["399_S255_L007",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+ 
+x <- phenotypes.df["436_S178_L007",] != phenotypes.df["437_S177_L007",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+x <- phenotypes.df["517_S450_L008",] != phenotypes.df["518_S384_L008",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+x <- phenotypes.df["527_S233_L007",] != phenotypes.df["528_S275_L008",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+x <- phenotypes.df["539_S288_L008",] != phenotypes.df["540_S461_L008",]
+sum(x[5:24]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+
+```
+
+## Unexpected duplicates
+
+Cases in these pairs have very different ages and phenotypes; so it could not be the same sample  
+
+```{r}
+
+x <- phenotypes.df["270_S70_L007",] != phenotypes.df["351_S71_L007",]
+sum(x[5:21]) # exclude long_ids illumina_id illumina_lane Sample_num fields
+phenotypes.df[c("270_S70_L007","351_S71_L007"),x] 
+
+rm(x)
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

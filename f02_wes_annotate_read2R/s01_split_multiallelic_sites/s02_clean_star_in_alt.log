@@ -1,0 +1,35 @@
+Job id: 28356249
+Allocated node: cpu-e-28
+Mon  7 Sep 17:53:38 BST 2020
+
+Job name: s02_clean
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s01_split
+
+ ------------------ Job progress ------------------ 
+
+Started s02_clean: 07Sep2020_17:53:38
+
+Variant counts before cleaning:
+
+Number of samples: 710
+Number of SNPs:    329394
+Number of INDELs:  26518
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   361604
+
+Started cleaning vcf after splitting multiallelic variants
+
+Variant counts after removing * in ALT: 
+
+Number of samples: 710
+Number of SNPs:    329394
+Number of INDELs:  26518
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   355912
+
+Done: 07Sep2020_17:58:29
+

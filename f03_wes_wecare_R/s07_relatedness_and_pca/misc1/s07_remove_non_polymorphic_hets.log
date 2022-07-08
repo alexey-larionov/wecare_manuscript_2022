@@ -1,0 +1,37 @@
+Job id: 29675974
+Allocated node: cpu-e-164
+Mon  5 Oct 22:16:03 BST 2020
+
+Job name: s07_keep_polymorphic_only
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s05_pca
+
+ ------------------ Job progress ------------------ 
+
+Started s07_keep_polymorphic_only
+Mon  5 Oct 22:16:03 BST 2020
+
+Source vcf counts
+
+Number of samples: 336
+Number of SNPs:    229323
+Number of INDELs:  13839
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   243162
+
+Excluding no heterozygous autosomal variants: removes non-polymorphic heterozygous.
+Still there could be a problem with non-polymorphic hemizygous; 
+However this problem was not present in this dataset (verified by in-house R script).
+Counts in the vcf file with new tags
+Number of samples: 336
+Number of SNPs:    229292
+Number of INDELs:  13829
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   243121
+
+Done
+Mon  5 Oct 22:18:18 BST 2020
+

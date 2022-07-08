@@ -1,0 +1,29 @@
+Job id: 5913399
+Job name: s01_download_source_data
+Allocated node: cpu-e-123
+Time: Tue 16 Oct 17:11:21 BST 2018
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/scripts_and_logs/s01_get_and_check_data
+
+------------------ Output ------------------
+
+Download source data
+Tue 16 Oct 17:11:21 BST 2018
+
+Settings:
+source_file: 180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz
+md5_file: 180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz.md5
+target_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/data_and_results/s01_source_data/downloaded
+
+Downloading files:
+2018-10-16 17:11:21 URL:http://sunstrider.medgen.medschl.cam.ac.uk/alarionov/180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz.md5 [81/81] -> "180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz.md5" [1]
+2018-10-16 17:29:09 URL:http://sunstrider.medgen.medschl.cam.ac.uk/alarionov/180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz [81824496982/81824496982] -> "180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz" [1]
+
+md5 sum check:
+180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz: OK
+
+Done all tasks
+Tue 16 Oct 17:35:53 BST 2018
+
+slurmstepd: error: Exceeded step memory limit at some point.

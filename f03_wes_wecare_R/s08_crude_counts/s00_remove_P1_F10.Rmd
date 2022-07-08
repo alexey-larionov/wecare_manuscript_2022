@@ -1,0 +1,169 @@
+---
+title: "Remove P1_F10"
+author: "Alexey Larionov"
+date: "08 March 2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Remove P1_F10 sample as requested by Liang in her e-mail of 25Jan2022
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_2022","wes","s01_wes_wecare_only")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+# folder already exists and contains a text file with BC11 genes
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(project_folder,"data","s07_relatedness_and_pca","s06_update_main_dataset.RData"))
+
+# update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_2022","wes","s01_wes_wecare_only")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+table(phenotypes.df$cc, useNA = "always")
+
+```
+
+# Remove P1_F10
+
+```{r}
+
+keep <- phenotypes.df$sample.ID != "P1_F10"
+sum(keep)
+
+genotypes.mx <- genotypes.mx[,keep]
+phenotypes.df <- phenotypes.df[keep,]
+
+table(phenotypes.df$cc, useNA = "always")
+
+rm(keep)
+
+```
+
+# Check for non-polymorphic sites
+
+```{r}
+# Function to detect uniform numeric vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+    
+uniformity_check <- apply(genotypes.mx,1,uniformity_check.udf)
+table(uniformity_check, useNA = "always")
+
+# Update matrices and data-frame(s)
+non_uniform_sites <- uniformity_check == "Non-Uniform"
+
+genotypes.mx <- genotypes.mx[non_uniform_sites,]
+variants.df <- variants.df[non_uniform_sites,]
+
+# Check result
+dim(genotypes.mx)
+dim(variants.df)
+
+# Clean-up
+rm(uniformity_check.udf, uniformity_check, non_uniform_sites)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+table(phenotypes.df$cc, useNA = "always")
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s00_remove_P1_F10.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

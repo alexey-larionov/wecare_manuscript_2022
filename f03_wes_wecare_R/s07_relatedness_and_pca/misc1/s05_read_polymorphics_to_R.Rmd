@@ -1,0 +1,117 @@
+---
+title: "Read bcftools polymorphic sites to R"
+author: "Alexey Larionov"
+date: "05 October 2020"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Import VCF file into vcfR object  
+- Extract header and variants data  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+
+options(width=999)
+
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory info
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/rds/project/erf33/rds-erf33-medgen"
+project_folder=file.path(base_folder,"users/alexey/wecare/reanalysis_wo_danish_2020")
+data_folder <- file.path(project_folder,"data","s05_pca","s01_vcf")
+scripts_folder <- file.path(project_folder,"scripts","s05_pca")
+setwd(scripts_folder)
+
+# Required library
+library(vcfR)
+
+```
+
+# Read VCF
+
+```{r}
+
+# VCF file name
+vcf_file <- file.path(data_folder,"wecare_altok_filltags_polymorphic.vcf.gz")
+
+# Read vcf to vcfR object
+# called "full.vcfr"" to distinguish with the later subsetted sections of vcfr
+full.vcfr <- read.vcfR(vcf_file, verbose=F)
+
+# Check result
+full.vcfr
+head(full.vcfr)
+
+# Clean-up
+rm(vcf_file)
+
+```
+
+# Extract header and variants information to data frames
+
+```{r}
+
+# Get list with data from VCF header and fixed/standard VCF columns
+meta_fix <- vcfR2tidy(full.vcfr, info_only=T)
+
+# Get data frame with variants information
+bcftools_polymorphic_variants.df <- as.data.frame(meta_fix$fix)
+dim(bcftools_polymorphic_variants.df)
+colnames(bcftools_polymorphic_variants.df)
+
+# Clean-up
+rm(meta_fix,full.vcfr)
+
+```
+
+# Save variants data
+
+```{r}
+
+save(bcftools_polymorphic_variants.df, 
+     file=file.path(data_folder,"s05_read_polymorphics_to_R.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+gc()
+Sys.time()
+
+```

@@ -1,0 +1,298 @@
+---
+title: "Filter by sample call rates"
+author: "Alexey Larionov"
+date: "25 Jan 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Remove samples with call rate < 0.5  
+
+Check call rates (per variant and per sample) before and after filtering.  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021")
+
+scripts_folder <- file.path(project_folder,"scripts","s06_filter")
+setwd(scripts_folder)
+
+data_folder <- file.path(project_folder,"data","s06_filter")
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s03_filter_by_variant_call_rates.RData"))
+
+# Update folders (just in case)
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021")
+scripts_folder <- file.path(project_folder,"scripts","s06_filter")
+data_folder <- file.path(project_folder,"data","s06_filter")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Genotypes missingness before filtering
+
+```{r}
+
+# Fraction of NA genotypes
+sum(is.na(genotypes.mx))/(nrow(genotypes.mx)*ncol(genotypes.mx))
+genotypes.mx[1:5,1:5]
+
+```
+
+# Variant call rates before filtering
+
+```{r}
+
+# Function to calculate call rate
+call_rate.udf <- function(x){1-sum(is.na(x))/length(x)}
+
+# Call rates per variant
+var_call_rate <- apply(genotypes.mx,1,call_rate.udf)
+
+hist(var_call_rate, breaks=50, main="Call rate per variant", 
+     xlim=c(0,1), xlab="Call rates")
+abline(v=0.85, lty=2, col="red")
+
+plot(var_call_rate, ylim=c(0,1), main="Call rate per variant")
+abline(h=0.85, lty=2, col="red")
+
+# Clean-up
+rm(var_call_rate)
+
+```
+
+# Sample call rates before filtering
+
+```{r}
+
+# Call rates per sample
+case_call_rate <- apply(genotypes.mx,2,call_rate.udf)
+
+hist(case_call_rate, main="Call rate per sample", 
+     xlim=c(0,1),xlab="Call rates")
+abline(v=0.5, lty=2, col="red")
+
+plot(case_call_rate, ylim=c(0,1), main="Call rate per sample")
+abline(h=0.5, lty=2, col="red")
+
+low_call_rate_indices <- which(case_call_rate < 0.82)
+low_call_rate_values <- case_call_rate[low_call_rate_indices]
+low_call_rate_samples <- names(low_call_rate_values)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=1)
+
+# Clean-up
+rm(low_call_rate_indices,low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Filter by sample call rates
+
+```{r}
+
+# Filter
+selected_samples <- case_call_rate >= 0.5
+sum(selected_samples)
+
+genotypes.mx <- genotypes.mx[,selected_samples]
+phenotypes.df <- phenotypes.df[selected_samples,]
+
+# Check result
+dim(genotypes.mx)
+dim(phenotypes.df)
+
+# Clean-up
+rm(selected_samples)
+
+```
+
+# Remove non-polymorphic sites
+
+After samples filtering some variant sites may become non-polymorphic
+
+```{r}
+
+# Function to detect uniform numeric vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+    
+uniformity_check <- apply(genotypes.mx,1,uniformity_check.udf)
+summary(as.factor(uniformity_check))
+non_uniform_sites <- uniformity_check == "Non-Uniform"
+
+# Update matrices and data-frame(s)
+genotypes.mx <- genotypes.mx[non_uniform_sites,]
+variants.df <- variants.df[non_uniform_sites,]
+
+# Check result
+dim(genotypes.mx)
+dim(variants.df)
+
+# Clean-up
+rm(uniformity_check.udf,uniformity_check,non_uniform_sites)
+
+```
+
+# Genotypes missingness after filtering
+
+```{r}
+
+# Fraction of NA genotypes
+sum(is.na(genotypes.mx))/(nrow(genotypes.mx)*ncol(genotypes.mx))
+genotypes.mx[1:5,1:5]
+
+```
+
+# Variant call rates after filtering
+
+```{r}
+
+# Call rates per variant
+var_call_rate <- apply(genotypes.mx,1,call_rate.udf)
+min(var_call_rate)
+
+hist(var_call_rate, breaks=50, main="Call rate per variant", 
+     xlim=c(0,1), xlab="Call rates")
+abline(v=0.85, lty=2, col="red")
+
+plot(var_call_rate, ylim=c(0,1), main="Call rate per variant")
+abline(h=0.85, lty=2, col="red")
+
+# Clean-up
+rm(var_call_rate)
+
+```
+
+# Sample call rates after filtering
+
+```{r}
+
+# Call rates per sample
+case_call_rate <- apply(genotypes.mx,2,call_rate.udf)
+min(case_call_rate)
+
+hist(case_call_rate, main="Call rate per sample", 
+     xlim=c(0,1),xlab="Call rates")
+abline(v=0.5, lty=2, col="red")
+
+plot(case_call_rate, ylim=c(0,1), main="Call rate per sample")
+abline(h=0.5, lty=2, col="red")
+
+low_call_rate_indices <- which(case_call_rate < 0.9)
+low_call_rate_values <- case_call_rate[low_call_rate_indices]
+low_call_rate_samples <- names(low_call_rate_values)
+
+low_call_rate_samples
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=c(2,1,4,4,1,4),
+     cex=0.5)
+
+# Clean-up
+rm(call_rate.udf,case_call_rate,
+   low_call_rate_indices,low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s04_filter_by_sample_call_rates.RData"))
+
+#write.table(variants.df$ID,file.path(data_folder,"s04_retained_variants.txt"),
+#            col.names=F,row.names=F,quote=F,sep="\t")
+#write.table(phenotypes.df$wes_id,file.path(data_folder,"s04_retained_samples.txt"),
+#            col.names=F,row.names=F,quote=F,sep="\t")
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

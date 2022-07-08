@@ -1,0 +1,245 @@
+---
+title: "Ampliseq WECARE-NFFE BC9: MASS POLR"
+author: "Alexey Larionov"
+date: "30 Dec 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Only 9 genes from the BC11 gene list were included in Ampliseq panel: BC8 + RAD51C (selected in the previous scripts).  
+
+This script  
+
+- Reads the data, which is already imputed, weighted and aggregated per bc9 genes (there was no need in inverting genotypes).  
+- Performs trend test for NFE < UBC < CBC using POLR function from MASS library.  
+
+MASS POLR is a trend test within regression framework using proportional odds regression model. Thus, it allows the covariates, which are **2** top eigenvectors in this case.  
+
+POLR or multinomial-logistic regression were advised by David Conti (e-mail of 18Nov2016). Initially, I tested both.  Then I excluded multinomuial because it was messy implemented and, in general, multinomial is less sensitive/suitable for ordered categories.  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_afterNov2021","ampliseq","s02_ampliseq_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s09_polr")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s09_polr")
+
+# Libraries
+library(MASS) # for proportional odds regression (polr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder, "s01_impute_weight_aggregate_bc9.RData"))
+
+# Update folders
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_afterNov2021","ampliseq","s02_ampliseq_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s09_polr")
+data_folder <- file.path(project_folder,"data","s09_polr")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(bc9_genotypes.mx)
+dim(bc9_genotypes_imp.mx)
+dim(bc9_genotypes_imp_wt.mx)
+
+length(bc9_genotypes_imp_wt_aggregated)
+
+length(bc11_genes)
+
+dim(bc9_fiv.df)
+dim(bc9_variants.df)
+
+# Check consistency of rownames and colnames
+sum(colnames(genotypes.mx) != phenotypes.df$sample.ID)
+sum(rownames(genotypes.mx) != variants.df$ID)
+
+sum(names(bc9_genotypes_imp_wt_aggregated) != phenotypes.df$sample.ID)
+
+```
+
+# POLR
+
+## Prepare data for the model
+
+### Outcomes
+
+Make an ordered (!) factor
+
+```{r}
+
+# Check data
+table(phenotypes.df$cc, useNA = "always")
+
+# Shift [-1,0,1] to [1,2,3]
+# because natural numbers may better fit to ordered factors later 
+Y <- phenotypes.df$cc + 2 
+
+# Convert to ordered factor
+Y <- ordered(Y, levels=c(1,2,3), labels=c("nffe", "ubc", "cbc")) 
+
+# Add names (just in case)
+names(Y) <- as.vector(phenotypes.df$sample.ID) 
+
+# Check result
+str(Y)
+summary(Y)
+Y[c(1,300,500)]
+sum(is.na(Y)) # 0
+Y[1:5]
+
+```
+
+### Eigenvectors
+
+```{r}
+
+E <- as.matrix(phenotypes.df[,c("pc1","pc2")])  
+E[1:5,]
+sum(is.na(E)) # 0
+
+```
+
+### Genotypes
+
+```{r}
+
+G <- bc9_genotypes_imp_wt_aggregated
+sum(is.na(G))
+length(G)
+G[1:5]
+
+```
+
+## POLR test
+
+### Null model (E)
+
+Includes only Eigenvectors
+
+```{r}
+
+polr_E <- polr(Y ~ E)
+
+```
+
+### Complete model (GE)
+
+Includes Genotypes and Eigenvectors
+
+```{r}
+
+polr_GE <- polr(Y ~ G + E)
+
+```
+
+### Null (E) vs Complete (GE)
+
+Compute polr p-value for Genotypes
+
+```{r}
+
+polr_anova <- anova(polr_E, polr_GE)
+polr_anova
+
+polr_p <- polr_anova["2","Pr(Chi)"]
+polr_p
+
+# Clean-up
+rm(Y, E, G, polr_p)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(bc9_genotypes.mx)
+dim(bc9_genotypes_imp.mx)
+dim(bc9_genotypes_imp_wt.mx)
+
+length(bc9_genotypes_imp_wt_aggregated)
+
+length(bc11_genes)
+
+dim(bc9_fiv.df)
+dim(bc9_variants.df)
+
+# Check consistency of rownames and colnames
+sum(colnames(genotypes.mx) != phenotypes.df$sample.ID)
+sum(rownames(genotypes.mx) != variants.df$ID)
+
+sum(names(bc9_genotypes_imp_wt_aggregated) != phenotypes.df$sample.ID)
+
+```
+
+# Save data
+
+```{r}
+
+save.image(file.path(data_folder, "s02_mass_polr_bc9.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

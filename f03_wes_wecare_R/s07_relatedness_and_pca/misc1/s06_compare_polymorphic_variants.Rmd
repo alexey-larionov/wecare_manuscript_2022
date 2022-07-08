@@ -1,0 +1,122 @@
+---
+title: "Compare polymorphic variants"
+author: "Alexey Larionov"
+date: "05 October 2020"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Compare polymorphic variants detected by Bcftools and by an in-house R-script:   
+it seems that bcftools still hasn't excluded non-polymorphic all-hets.  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+
+options(width=999)
+
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory info
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/rds/project/erf33/rds-erf33-medgen"
+project_folder=file.path(base_folder,"users/alexey/wecare/reanalysis_wo_danish_2020")
+data_folder <- file.path(project_folder,"data","s05_pca","s01_vcf")
+scripts_folder <- file.path(project_folder,"scripts","s05_pca")
+setwd(scripts_folder)
+
+# Required library
+library(dplyr)
+
+```
+
+# Read data
+
+```{r}
+
+# Variants from bcftools
+data_file <- file.path(data_folder,"s05_read_polymorphics_to_R.RData")
+load(data_file)
+
+# Variants from the in-house R script
+data_file <- file.path(project_folder,"data","s04_add_phenotypes","s02_selected_variants.RData")
+load(data_file)
+
+# Clean-up
+rm(data_file)
+
+```
+
+# Compare
+
+```{r}
+
+ls()
+dim(variants.df)
+dim(bcftools_polymorphic_variants.df)
+
+variants.df[1:5,1:5]
+bcftools_polymorphic_variants.df[1:5,1:5]
+
+nrow(bcftools_polymorphic_variants.df) - nrow(variants.df)  
+
+bcftools_variants <- bcftools_polymorphic_variants.df$ID
+r_script_variants <- variants.df$ID
+
+difference <- setdiff(bcftools_variants,r_script_variants)
+length(difference)
+difference
+
+difference.df <- bcftools_polymorphic_variants.df[bcftools_polymorphic_variants.df$ID %in% difference,
+                                      c("ID","AC","AN")]
+difference.df
+
+```
+
+# Save
+
+```{r}
+
+save.image(file.path(data_folder,"s06_comapre_polymorphic_variants.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+gc()
+Sys.time()
+
+```

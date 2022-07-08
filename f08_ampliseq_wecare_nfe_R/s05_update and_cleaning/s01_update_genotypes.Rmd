@@ -1,0 +1,214 @@
+---
+title: "Ampliseq wecare NFFE: Update genotypes"
+author: "Alexey Larionov"
+date: "27 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Make matrix for Alt fractions and remove unnecessary ref/alt/ad/meta matrices  
+
+Input and output data:  
+11,698 vars and 587 samples (198 NFFE, 194 UBC & 195 CBC)  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+#dir.create(data_folder)
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+setwd(scripts_folder)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(base_folder,"data","s04_select_samples","s04_exclude_danish.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(ad.mx)
+dim(ref.mx)
+dim(alt.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+dim(variants.df)
+colnames(variants.df)
+
+dim(meta.df)
+
+# Check consistence of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(ad.mx))
+sum(rownames(gt_add.mx) != rownames(ref.mx))
+sum(rownames(gt_add.mx) != rownames(alt.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(ref.mx))
+sum(colnames(gt_add.mx) != colnames(alt.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Make Alt Fraction matrix
+
+```{r}
+
+# Calculate Alt Fraction matrix
+sum.mx <- ref.mx + alt.mx
+alt_fraction.mx <- alt.mx / sum.mx 
+alt_fraction.mx[1:5,1:5]
+
+# NaN is placed in 0/0 (its count of alleles, not genotype!)
+sum(is.na(alt_fraction.mx))
+sum(is.nan(alt_fraction.mx))
+sum(ad.mx == "0,0")
+
+# Put NA instead of NaN (just in case)
+NA -> alt_fraction.mx[is.nan(alt_fraction.mx)]
+sum(is.na(alt_fraction.mx))
+sum(is.nan(alt_fraction.mx))
+
+# Note: sum.mx is not always equal to dp.mx
+sum(sum.mx != dp.mx, na.rm=T)/(nrow(dp.mx)*ncol(dp.mx))
+
+# Clean-up
+rm(sum.mx, ad.mx, ref.mx, alt.mx)
+
+```
+
+# Remove unnedeed data
+
+```{r}
+
+rm(meta.df)
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(alt_fraction.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistence of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(alt_fraction.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(alt_fraction.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s01_update_genotypes.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

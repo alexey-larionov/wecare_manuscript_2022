@@ -1,0 +1,8 @@
+The source data were copired from HPC like this:
+
+cd /Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_wo_danish_2021/s02_wes_wecare_nfe/data/s04_add_phenotypes
+
+rsync -avhe ssh al720@login-cpu.hpc.cam.ac.uk:/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s04_add_phenotypes/s01_add_phenotypes.RData .
+
+The source data included 1KGP & Danish.
+So the selecting samples step was (re-)run to keep 1KGP but exclude Danish.  

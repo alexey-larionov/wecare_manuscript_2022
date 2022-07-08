@@ -1,0 +1,35 @@
+Job id: 29665888
+Allocated node: cpu-e-947
+Mon  5 Oct 17:02:15 BST 2020
+
+Job name: s01_make_vcf
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s05_pca
+
+ ------------------ Job progress ------------------ 
+
+Started s01_make_vcf
+Mon  5 Oct 17:02:15 BST 2020
+
+Counts in the source vcf file
+Number of samples: 710
+Number of SNPs:    327060
+Number of INDELs:  16764
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   343824
+
+Selecting samples ...
+
+Counts in the output vcf file
+Number of samples: 336
+Number of SNPs:    230680
+Number of INDELs:  14012
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   343824
+
+Done
+Mon  5 Oct 17:06:31 BST 2020
+

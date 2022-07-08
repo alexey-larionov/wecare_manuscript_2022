@@ -1,0 +1,326 @@
+---
+title: "Ampliseq: combine phenotype and sequencing data"
+author: "Alexey Larionov"
+date: "20 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary  
+
+- Read previously prepared Ampliseq sequencing and phenotype data  
+- Rename fixed.df to vars.df  
+- Make table to match sample IDs in phenotypes-df and in sequencing  
+
+Add NFFE to the phenotypes table & sync phenotypes-df with the other data.  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s03_read_data")
+scripts_folder <- file.path(base_folder,"scripts","s03_read_data")
+setwd(scripts_folder)
+
+library(tidyr) # for separate()
+
+```
+
+# Read data  
+
+## Sequencing data
+
+```{r}
+
+# Load data
+load(file.path(data_folder,"s01_read_vcf_to_r.RData"))
+ls()
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s03_read_data")
+scripts_folder <- file.path(base_folder,"scripts","s03_read_data")
+
+```
+
+## Phenotype data
+
+```{r}
+
+# Load data
+load(file.path(data_folder,"s03_flag_danish_samples.RData"))
+
+# Check
+ls()
+dim(phenotypes_2019_with_danish.df)
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s03_read_data")
+scripts_folder <- file.path(base_folder,"scripts","s03_read_data")
+
+```
+
+# Rename matrices
+
+```{r}
+
+# Rename
+variants.df <- fixed.df
+phenotypes.df <- phenotypes_2019_with_danish.df
+
+# Explore
+sum(is.na(phenotypes.df))
+sum(phenotypes.df=="")
+
+dim(phenotypes.df)
+dim(variants.df)
+
+phenotypes.df[1:5,1:5]
+variants.df[1:5,1:5]
+
+# Clean-up
+rm(fixed.df, phenotypes_2019_with_danish.df)
+
+```
+
+#  Make table for phenotype / sequencing samples' IDs  
+
+The phenotype table includes samples numbers (e.g. 40),  
+while the sequencing data include alphanumerical IDs (e.g. 40_S189_L007)  
+
+This chunk adds alphanumerical IDs to the phenotype table as rownames.  
+
+```{r}
+
+# Check result
+dim(gt_add.mx)
+gt_add.mx[1:5,1:5]
+gt_add.mx[1:5,541:542] # The border between Ampliseq and NFE samples
+gt_add.mx[1:5,735:739]
+
+# Get long alpha-numeric sample ID-s for all Ampliseq samples
+wecare_samples.df <- data.frame(long_ids=colnames(gt_add.mx)[1:541])
+dim(wecare_samples.df)
+head(wecare_samples.df)
+
+# Get sample ID-s for NFE samples (for sanity check)
+nfe_samples.df <- data.frame(long_ids=colnames(gt_add.mx)[542:739])
+dim(nfe_samples.df)
+head(nfe_samples.df)
+
+# Split the long Ampliseq alpha-numeric IDs (requires package tidyr)
+wecare_samples.df <- separate(wecare_samples.df, "long_ids", 
+                              c("num", "illumina_id", "illumina_lane"), 
+                              sep="_", remove=F) 
+wecare_samples.df$num <- as.integer(wecare_samples.df$num)
+wecare_samples.df <- wecare_samples.df[order(wecare_samples.df$num),]
+rownames(wecare_samples.df) <- wecare_samples.df$num
+
+# Check result
+dim(wecare_samples.df)
+str(wecare_samples.df)
+wecare_samples.df[1:5 ,]
+
+# Remove 3 samples
+wecare_samples.df <- wecare_samples.df[
+  !wecare_samples.df$num %in% c(391,393,395),]
+
+# Bind add long IDs to phenotypes table
+dim(wecare_samples.df)
+dim(phenotypes.df)
+
+wecare_samples.df[1:5,]
+phenotypes.df[1:5,1:5]
+
+all(wecare_samples.df$num == phenotypes.df$Sample_num)
+phenotypes.df <- cbind(wecare_samples.df, phenotypes.df)
+
+# Check that numbers are identical 
+# (paranoid common sense checks)
+sum(phenotypes.df$num == phenotypes.df$Sample_num)
+sum(phenotypes.df$num != phenotypes.df$Sample_num)
+
+# Remove one of the columns with sample numbers
+phenotypes.df <- phenotypes.df[,-2]
+
+# Set alpha-numeric ID-s as rownames in phenotypes.df  
+rownames(phenotypes.df) <- phenotypes.df$long_ids
+
+# Check result
+dim(phenotypes.df)
+colnames(phenotypes.df)
+str(phenotypes.df)
+phenotypes.df[1:5,1:7]
+
+# Clean-up
+rm(wecare_samples.df, nfe_samples.df)
+
+```
+
+# Add NFFE to phenotypes table
+
+```{r}
+
+# Make sure that all samples from phenotypes table 
+# are in colnames of genotypes matrix
+ncol(gt_add.mx)-198
+nrow(phenotypes.df)
+sum(colnames(gt_add.mx) %in% rownames(phenotypes.df))
+
+# Check where the NFFE samples start in colnames of genotypes matrix
+colnames(gt_add.mx)[c(541,542)]
+
+# Extract NFFE names
+dim(gt_add.mx)
+NFFE_samples <- colnames(gt_add.mx)[c(542:739)]
+length(NFFE_samples)
+
+# Prepare matrix of NA for NFFE genotypes
+dim(phenotypes.df)
+nffe_phenotypes.df <- phenotypes.df[1:198,]
+dim(nffe_phenotypes.df)
+
+for(row in 1:198){
+  for(col in 1:25){
+    nffe_phenotypes.df[row,col] <- NA
+  }
+}
+
+nffe_phenotypes.df[1:5,1:5]
+
+# Populate the relevant parts of the matrix
+colnames(nffe_phenotypes.df)
+nffe_phenotypes.df$long_ids <- NFFE_samples
+nffe_phenotypes.df$cc <- -1
+nffe_phenotypes.df$danish <- F
+rownames(nffe_phenotypes.df) <- nffe_phenotypes.df$long_ids
+
+nffe_phenotypes.df[1:5,c(1:5,25)]
+
+# Add NFFE to phenotypes table
+phenotypes.df <- rbind(phenotypes.df,nffe_phenotypes.df)
+dim(phenotypes.df)
+phenotypes.df[1:5,1:5]
+
+# Clean-up
+rm(nffe_phenotypes.df, NFFE_samples, col, row)
+
+```
+
+# Sync genotypes matrices with phenotypes table
+
+```{r}
+
+dim(gt_add.mx)
+gt_add.mx <- gt_add.mx[,rownames(phenotypes.df)]
+dim(gt_add.mx)
+
+gt_chr.mx <- gt_chr.mx[,rownames(phenotypes.df)]
+gt_num.mx <- gt_num.mx[,rownames(phenotypes.df)]
+dim(gt_chr.mx)
+dim(gt_num.mx)
+
+dp.mx <- dp.mx[,rownames(phenotypes.df)]
+gq.mx <- gq.mx[,rownames(phenotypes.df)]
+dim(dp.mx)
+dim(gq.mx)
+
+ad.mx <- ad.mx[,rownames(phenotypes.df)]
+alt.mx <- alt.mx[,rownames(phenotypes.df)]
+ref.mx <- ref.mx[,rownames(phenotypes.df)]
+dim(ad.mx)
+dim(alt.mx)
+dim(ref.mx)
+
+dim(phenotypes.df)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(ad.mx)
+dim(alt.mx)
+dim(ref.mx)
+
+dim(dp.mx)
+dim(gq.mx)
+
+dim(meta.df)
+
+dim(phenotypes.df)
+dim(variants.df)
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+# Check cases and controls in danish and non-danish
+table(phenotypes.df$cc, useNA = "always")
+table(phenotypes.df$danish, useNA = "always")
+table(phenotypes.df[,c("cc","danish")], useNA = "always")
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder, "s04_add_phenotypes.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

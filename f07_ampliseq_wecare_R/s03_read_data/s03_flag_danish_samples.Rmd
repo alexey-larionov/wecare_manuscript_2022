@@ -1,0 +1,157 @@
+---
+title: "Add flag for Danish ampliseq samples"
+author: "AL"
+date: "20 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- The final phenotype data were provided to me by Marc in e-mail of **03Nov2021**  
+    + file name: **Correction0924201_2Phenotype data for exome seq_shipping manifest_sent_10 05 17.xlsx**  
+- The information about Danish samples was sent by Xiaolin to Marc on **11Sep2019**  
+    + file name: **Danish_samples_in_WES.xlsx**
+
+In e-mail of **27Apr2020** Marc clarified that clinically actionable genes must not be analyzed in Danish cohort.  
+So, these samples should be excluded from the current analysis because it aggregates variants in the known BC genes.  
+
+This script flags Danish samples in ampliseq phenotype data.  
+
+Because of a problem with XLConnect:  
+https://stackoverflow.com/questions/tagged/xlconnect?sort=active  
+the worksheets containing phenotype data were saved as tab-separated text files to import to R.  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F)
+
+#options(warnPartialMatchArgs = T, 
+#        warnPartialMatchAttr = T, 
+#        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s03_read_data")
+scripts_folder <- file.path(base_folder,"scripts","s03_read_data")
+setwd(scripts_folder)
+
+# Libraries
+library(dplyr)
+
+```
+
+# Read source data
+
+## 2021  
+
+```{r}
+
+# Read
+data_file_2021 <- file.path(base_folder,"data","s01_phenotypes","txt","Correction0924201_2Phenotype data for exome seq_shipping manifest_sent_10 05 17.txt")
+phenotypes_2021.df <- read.table(data_file_2021,
+                                 header=T,sep="\t",quote = "")
+
+# Explore
+dim(phenotypes_2021.df)
+str(phenotypes_2021.df)
+phenotypes_2021.df[1:5,1:5]
+
+# Order and add rownames
+phenotypes_2021.df <- phenotypes_2021.df[
+  order(phenotypes_2021.df$Sample_num),]
+
+rownames(phenotypes_2021.df) <- phenotypes_2021.df$Sample_num
+
+# Clean-up
+rm(data_file_2021)
+
+```
+
+## Danish
+
+```{r}
+
+# Read
+data_file <- file.path(base_folder,"data","s01_phenotypes","txt","Danish_samples_in_WES_round2.txt")
+danish_samples.df <- read.table(data_file,
+                                header=T,sep="\t",quote = "")
+
+# Explore
+dim(danish_samples.df)
+str(danish_samples.df)
+danish_samples.df[c(1,38,74),]
+
+# Clean-up
+rm(data_file)
+
+```
+
+# Add danish information
+
+```{r}
+
+danish <- phenotypes_2021.df$Sample_num %in% danish_samples.df$Sample_number
+sum(danish)
+
+phenotypes_2019_with_danish.df <- data.frame(phenotypes_2021.df,danish)
+str(phenotypes_2019_with_danish.df)
+sum(phenotypes_2019_with_danish.df$danish)
+
+rm(danish_samples.df, phenotypes_2021.df, danish)
+
+```
+
+# Save result
+
+```{r}
+
+ls()
+save.image(file.path(data_folder,"s03_flag_danish_samples.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

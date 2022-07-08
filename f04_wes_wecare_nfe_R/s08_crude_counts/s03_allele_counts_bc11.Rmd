@@ -1,0 +1,276 @@
+---
+title: "WES: BC11 crude allele counts, WECARE-NFFE"
+author: "Alexey Larionov"
+date: "22 Apr 2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Calculate aggregated crude counts: totals, and separately for nffe, cases and controls  
+- Trend test for the crude counts  
+
+**Aggregated** AF is defined as **total** AC over **mean** AN in the studied variants  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","reanalysis_2022","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+# folder already exists and contains a text file with BC11 genes
+
+# Libraries
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s02_select_bc11_pv.RData"))
+
+# Update working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","reanalysis_2022","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s08_crude_counts")
+# folder already exists and contains a text file with BC11 genes
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(bc11_variants.df)
+dim(bc11_fiv.df)
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+bc11_genes
+
+```
+
+# Aggregate crude counts
+
+## Total
+
+```{r}
+
+total_ac <- sum(bc11_fiv.df$total_ac) 
+
+total_an <- sum(bc11_fiv.df$total_an)
+mean_an <- total_an / nrow(bc11_fiv.df)
+
+mean_af <- total_ac / total_an
+aggregated_af <- total_ac / mean_an
+
+mean_af
+aggregated_af
+
+rm(total_ac,total_an,mean_an,mean_af,aggregated_af)
+
+```
+
+## NFFE
+
+```{r}
+
+nfe_ac <- sum(bc11_fiv.df$nfe_ac) 
+
+nfe_total_an <- sum(bc11_fiv.df$nfe_an)
+nfe_mean_an <- nfe_total_an / nrow(bc11_fiv.df)
+
+nfe_mean_af <- nfe_ac / nfe_total_an
+nfe_aggregated_af <- nfe_ac / nfe_mean_an
+
+rm(nfe_mean_an)
+
+```
+
+## UBC
+
+```{r}
+
+controls_ac <- sum(bc11_fiv.df$controls_ac) 
+
+controls_total_an <- sum(bc11_fiv.df$controls_an)
+controls_mean_an <- controls_total_an / nrow(bc11_fiv.df)
+
+controls_mean_af <- controls_ac / controls_total_an
+controls_aggregated_af <- controls_ac / controls_mean_an
+
+rm(controls_mean_an)
+
+```
+
+## CBC
+
+```{r}
+
+cases_ac <- sum(bc11_fiv.df$cases_ac)
+
+cases_total_an <- sum(bc11_fiv.df$cases_an)
+cases_mean_an <- cases_total_an / nrow(bc11_fiv.df)
+
+cases_mean_af <- cases_ac / cases_total_an
+cases_aggregated_af <- cases_ac / cases_mean_an
+
+rm(cases_mean_an)
+
+```
+
+## Proportions trend test
+
+nfe-ubc-cbc
+
+```{r}
+
+ac_prop_trend <- c(nfe_ac,controls_ac,cases_ac)
+an_prop_trend <- c(nfe_total_an,controls_total_an,cases_total_an)
+  
+trend_test <- prop.trend.test(ac_prop_trend, an_prop_trend)
+trend_test
+
+rm(nfe_ac,controls_ac,cases_ac,
+   nfe_total_an,controls_total_an,cases_total_an,
+   ac_prop_trend, an_prop_trend)
+
+```
+
+## Barplot
+
+### Mean AF
+
+```{r}
+
+afs <- c(nfe_mean_af,controls_mean_af,cases_mean_af)
+names(afs) <- c("NFFE","UBC","CBC")
+
+cc_counts <- table(phenotypes.df$cc)
+cc_counts
+
+mp <- barplot(afs, ylim=c(0,max(afs)+0.0005), 
+              main=paste("BC11: WES WECARE-NFFE\n",
+                         cc_counts[1],"1KGP-NFFE,",
+                         cc_counts[2],"Controls and",
+                         cc_counts[3],"Cases\nCrude counts trend p=",round(trend_test$p.value,3)), 
+              ylab="Mean AF in selected variants")
+
+text(mp,afs+0.0003,format(round(afs,4),scientific=F))
+
+# Clean-up
+rm(nfe_mean_af,controls_mean_af,cases_mean_af,
+   afs, mp)
+
+```
+
+### Aggregated AF
+
+```{r}
+
+afs <- c(nfe_aggregated_af,controls_aggregated_af,cases_aggregated_af)
+names(afs) <- c("NFFE\nn=196","UBC\nn=171","CBC\nn=160")
+
+mp <- barplot(afs, ylim=c(0,max(afs)+0.005), 
+              main=paste("BC11 Aggregated AF: WES WECARE-NFFE\n",
+                         cc_counts[1],"1KGP-NFFE,",
+                         cc_counts[2],"Controls and",
+                         cc_counts[3],"Cases\nCrude counts trend p=",round(trend_test$p.value,3)),  
+              ylab="Aggregated AF")
+
+text(mp,afs+0.003,format(round(afs,3),scientific=F))
+
+# Clean-up
+rm(nfe_aggregated_af,controls_aggregated_af,cases_aggregated_af,
+   afs, mp, cc_counts, trend_test)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(bc11_variants.df)
+dim(bc11_fiv.df)
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+table(phenotypes.df$cc, useNA = "always")
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s03_allele_counts_bc11.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

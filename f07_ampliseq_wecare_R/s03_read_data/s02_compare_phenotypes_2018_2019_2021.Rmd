@@ -1,0 +1,181 @@
+---
+title: "Compare phenotypes of 2018, 2019 and 2021"
+author: "AL"
+date: "20 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Initially, Ampliseq phenotype data were provided by Xiaolin in e-mail to Marc of **29Aug2018**  
+  file name: **Phenotype data for exome seq_shipping manifest_sent_10 05 17.xlsx**  
+  
+- Then, the updated data were provided to me by Marc in e-mail of **07Jan2019**  
+  file name: **2Phenotype data for exome seq_shipping manifest_sent_10 05 17.xlsx**  
+  
+- Finally an update was sent in **03Nov2021** to exclude 3 more samples and to swop numbers in one pair of samples  
+  file name: **Correction0924201_2Phenotype data for exome seq_shipping manifest_sent_10 05 17.xlsx**
+
+This script reads the sets and compares them before use.  
+
+Because of a problem with XLConnect:  
+https://stackoverflow.com/questions/tagged/xlconnect?sort=active  
+the worksheets containing phenotype data were saved as tab-separated text files to import to R.  
+
+The comparison shows that 
+
+1) Data of 2019 is identical to data of 2018, except for addition of 3 new columns:  
+- family_history  
+- setno  
+- xrtbreast  
+
+2) Data of 2021 is identical to data of 2019 except for:
+- order of rows  
+- removal of samples 391, 393 and 395  
+- swap of samples 240 and 241  
+
+All differences are expected (they were described in correspondence with Xiaolin)  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F)
+
+#options(warnPartialMatchArgs = T, 
+#        warnPartialMatchAttr = T, 
+#        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s03_read_data")
+scripts_folder <- file.path(base_folder,"scripts","s03_read_data")
+setwd(scripts_folder)
+
+```
+
+# Read source data
+
+## 2018
+
+```{r}
+
+data_file_2018 <- file.path(base_folder,"data","s01_phenotypes","txt","Phenotype data for exome seq_shipping manifest_sent_10 05 17.txt")
+
+phenotypes_2018.df <- read.table(data_file_2018,
+                                 header=T,sep="\t",quote="")
+dim(phenotypes_2018.df)
+colnames(phenotypes_2018.df)
+
+rm(data_file_2018)
+
+```
+
+## 2019
+
+```{r}
+
+data_file_2019 <- file.path(base_folder,"data","s01_phenotypes","txt","2Phenotype data for exome seq_shipping manifest_sent_10 05 17.txt")
+
+phenotypes_2019.df <- read.table(data_file_2019,
+                                 header=T,sep="\t",quote="")
+dim(phenotypes_2019.df)
+colnames(phenotypes_2019.df)
+
+rm(data_file_2019)
+
+```
+
+## 2021
+
+```{r}
+
+data_file_2021 <- file.path(base_folder,"data","s01_phenotypes","txt","Correction0924201_2Phenotype data for exome seq_shipping manifest_sent_10 05 17.txt")
+
+phenotypes_2021.df <- read.table(data_file_2021,
+                                 header=T,sep="\t",quote="")
+dim(phenotypes_2021.df)
+colnames(phenotypes_2021.df)
+
+rm(data_file_2021)
+
+```
+
+# Compare 2018 and 2019
+
+```{r}
+
+all(phenotypes_2018.df == phenotypes_2019.df[,1:18])
+
+```
+
+# Compare 2019 and 2021
+
+```{r}
+
+identical(colnames(phenotypes_2019.df),colnames(phenotypes_2021.df))
+
+phenotypes_2021.df <- phenotypes_2021.df[order(phenotypes_2021.df$Sample_num),]
+rownames(phenotypes_2021.df) <- phenotypes_2021.df$Sample_num
+
+phenotypes_2019.df <- phenotypes_2019.df[
+  !phenotypes_2019.df$Sample_num %in% c(391,393,395),]
+
+rownames(phenotypes_2019.df) <- phenotypes_2019.df$Sample_num
+
+old240 <- phenotypes_2019.df[240,]
+old241 <- phenotypes_2019.df[241,]
+  
+phenotypes_2019.df[240,] <- old241
+phenotypes_2019.df[240,"Sample_num"] <- 240
+
+phenotypes_2019.df[241,] <- old240 
+phenotypes_2019.df[241,"Sample_num"] <- 241
+
+identical(colnames(phenotypes_2019.df),colnames(phenotypes_2021.df))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

@@ -1,0 +1,332 @@
+---
+title: "Ampliseq WECARE only: crude counts per variant"
+author: "Alexey Larionov"
+date: "24 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+- Calculate crude counts: totals, and separately for cases and controls  
+- Fisher test for the crude counts  
+- FDR for all variants  
+
+Data: 3,840 vars x 389 samples (194UBC + 195CBC)
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s08_crude_counts")
+#dir.create(data_folder)
+scripts_folder <- file.path(base_folder,"scripts","s08_crude_counts")
+setwd(scripts_folder)
+
+# Libraries and functions
+library(dplyr)
+source(file.path(base_folder,"scripts","f00_functions","f01_qqunif_plot.R"))
+
+```
+
+# Load data
+
+```{r}
+
+# Load data
+load(file.path(base_folder,"data","s07_relatedness_and_pca","s08_update_main_dataset.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s08_crude_counts")
+scripts_folder <- file.path(base_folder,"scripts","s08_crude_counts")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Prepare indices for cases and controls
+
+```{r}
+
+table(phenotypes.df$cc, useNA = "always")
+
+cases <- phenotypes.df$cc == 1
+controls <- phenotypes.df$cc == 0
+
+```
+
+# Prepare matrix for results
+
+```{r}
+
+col_names <- c("id",
+               "total_ac","total_an","total_af",
+               "controls_ac","controls_an","controls_af",
+               "cases_ac","cases_an","cases_af",
+               "excess_group",
+               "crude_fisher_p","crude_counts_or",
+               "or_lo_ci","or_hi_ci")
+
+variants_crude_counts.mx <- matrix(nrow=0,ncol=length(col_names))
+
+colnames(variants_crude_counts.mx) <- col_names
+
+rm(col_names)
+
+```
+
+# Calculate crude counts and Fisher test
+
+```{r}
+
+# For each variant
+for(var in 1:nrow(variants.df)){
+  
+  # for testing
+  # var <- 1
+  
+  # Get variant ID
+  id <- variants.df[var,"ID"]
+  
+  # Get vector of genotypes
+  genotypes <- genotypes.mx[var,]
+  
+  # Calculate crude counts
+  total_ac <- sum(genotypes, na.rm=T)
+  total_an <- 2*sum(!is.na(genotypes))
+  total_af <- total_ac / total_an
+
+  controls_ac <- sum(genotypes[controls], na.rm=T)
+  controls_an <- 2*sum(!is.na(genotypes[controls]))
+  controls_af <- controls_ac / controls_an
+
+  cases_ac <- sum(genotypes[cases], na.rm=T)
+  cases_an <- 2*sum(!is.na(genotypes[cases]))
+  cases_af <- cases_ac / cases_an
+
+  # Determine the excess group
+  if(cases_af > controls_af) "cases" -> excess_group
+  if(cases_af < controls_af) "controls" -> excess_group
+  if(cases_af == controls_af) "none" -> excess_group
+  
+  # Calculate Fisher test
+  fisher_matrix <- matrix(c(cases_ac, cases_an - cases_ac,
+                          controls_ac, controls_an -controls_ac),
+                          nrow=2, byrow=T)
+  
+  fisher_test <- fisher.test(fisher_matrix, conf.int=T)
+  
+  crude_fisher_p <- fisher_test$p.value
+  crude_counts_or <- fisher_test$estimate
+  crude_counts_or_ci <- fisher_test$conf.int
+  
+  # Compile and record the result 
+  result <- c(id,
+     total_ac, total_an, total_af,
+     controls_ac, controls_an, controls_af,
+     cases_ac, cases_an, cases_af,
+     excess_group,
+     crude_fisher_p, crude_counts_or, crude_counts_or_ci)
+  
+  variants_crude_counts.mx <- rbind(variants_crude_counts.mx,
+                                    result)
+
+  # Clean-up (to avoid chances of counts carry-over between records)
+  rm(id,genotypes,
+     total_ac,total_an,total_af,
+     controls_ac,controls_an,controls_af,
+     cases_ac,cases_an,cases_af,
+     excess_group,
+     fisher_matrix, fisher_test,
+     crude_fisher_p, crude_counts_or, crude_counts_or_ci,
+     result)
+  
+} # Next variant
+
+# Check result
+dim(variants_crude_counts.mx)
+head(variants_crude_counts.mx)
+
+# Clean-up
+rm(var, cases, controls)
+
+```
+
+# Update numeric fields
+
+```{r}
+
+# Make data frame
+variants_crude_counts.df <- as.data.frame(variants_crude_counts.mx)
+dim(variants_crude_counts.df)
+
+# Update field types
+variants_crude_counts.df$id <- as.character(variants_crude_counts.df$id)
+
+variants_crude_counts.df$total_ac <- as.integer(variants_crude_counts.df$total_ac)
+variants_crude_counts.df$total_an <- as.integer(variants_crude_counts.df$total_an)
+variants_crude_counts.df$total_af <- as.numeric(variants_crude_counts.df$total_af)
+
+variants_crude_counts.df$controls_ac <- as.integer(variants_crude_counts.df$controls_ac)
+variants_crude_counts.df$controls_an <- as.integer(variants_crude_counts.df$controls_an)
+variants_crude_counts.df$controls_af <- as.numeric(variants_crude_counts.df$controls_af)
+
+variants_crude_counts.df$cases_ac <- as.integer(variants_crude_counts.df$cases_ac)
+variants_crude_counts.df$cases_an <- as.integer(variants_crude_counts.df$cases_an)
+variants_crude_counts.df$cases_af <- as.numeric(variants_crude_counts.df$cases_af)
+
+variants_crude_counts.df$excess_group <- as.character(variants_crude_counts.df$excess_group)
+
+variants_crude_counts.df$crude_fisher_p <- as.numeric(variants_crude_counts.df$crude_fisher_p)
+variants_crude_counts.df$crude_counts_or <- as.numeric(variants_crude_counts.df$crude_counts_or)
+variants_crude_counts.df$or_lo_ci <- as.numeric(variants_crude_counts.df$or_lo_ci)
+variants_crude_counts.df$or_hi_ci <- as.numeric(variants_crude_counts.df$or_hi_ci)
+
+str(variants_crude_counts.df)
+
+rownames(variants_crude_counts.df) <- variants_crude_counts.df$id
+
+# Clean-up
+rm(variants_crude_counts.mx)
+
+```
+
+# Calculate adjusted p-values 
+
+```{r}
+
+crude_fisher_p_adj <- p.adjust(variants_crude_counts.df$crude_fisher_p, method="BH")
+
+variants_crude_counts.df <- cbind(variants_crude_counts.df, crude_fisher_p_adj)
+
+rm(crude_fisher_p_adj)
+
+```
+
+# Add results to variants table
+
+```{r}
+
+sum(variants.df$ID != variants_crude_counts.df$id)
+
+variants.df <- cbind(variants.df, variants_crude_counts.df)
+
+variants.df <- variants.df %>% select(-id)
+
+rm(variants_crude_counts.df)
+
+```
+
+# Look at the top variants
+
+```{r}
+
+min(variants.df$crude_fisher_p_adj)
+
+variants.df %>% 
+  select(ID,vep_SYMBOL,controls_af,cases_af,excess_group,crude_fisher_p,crude_fisher_p_adj) %>% 
+  arrange(desc(crude_fisher_p)) %>% 
+  filter(crude_fisher_p <= 0.01)
+
+```
+
+# QQ plot
+
+```{r}
+
+qqunif.plot(variants.df$crude_fisher_p)
+
+rm(qqunif.plot)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s01_crude_counts_per_variant.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

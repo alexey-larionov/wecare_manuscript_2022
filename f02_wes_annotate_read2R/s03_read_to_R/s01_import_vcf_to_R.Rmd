@@ -1,0 +1,206 @@
+---
+title: "Read VCF with vcfR"
+author: "Alexey Larionov"
+date: "25 October 2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Summary
+
+- Import VCF file into vcfR object  
+- Extract header and variants data  
+- Extract genotype data: GT, DP, GQ and AD  
+
+Initially the script was working and rendering in a standard manner.  
+Without any clear reason, in mid October 2020 it started failing during rendering  
+with error: address 0xfffffffffbdb0318, cause 'memory not mapped' (see s01_run_rmd.log).  
+
+The error is not fully reproducible because the rendering works well with other scripts  
+(e.g. see s02_run_rmd.log). Updating packages etc didnt help.  
+
+Googling suggests that this may kappen if some of the R and Unix libraries  
+are build with incompartible versions of compilers/dependencies.  
+
+Debugging such issue on cluster is complicated. So, the final script  
+version was just run w/o knitting and rendering html log (aka Run -> Run all).  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+
+options(width=999)
+
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory info
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder <- "/rds/project/erf33/rds-erf33-medgen"
+project_folder=file.path(base_folder,"/users/alexey/wecare/reanalysis_wo_danish_2020")
+scripts_folder <- file.path(project_folder,"scripts","s03_read_to_R")
+setwd(scripts_folder)
+
+data_folder <- file.path(project_folder,"data","s03_read_to_R")
+#dir.create(data_folder)
+
+# Required library
+#install.packages("Rcpp")
+#install.packages("vcfR")
+library(vcfR)
+
+```
+
+# Read VCF
+
+```{r}
+
+# VCF file name
+vcf_file <- file.path(project_folder,"data","s02_annotate","wecare_nfe_nov2016_vqsr_shf_split_clean_tag_ac_id_clinvar_vep_split_rm.vcf.gz")
+
+# Read vcf to vcfR object 
+# called "full.vcfr"" to distinguish with the later subsetted sections of vcfr 
+full.vcfr <- read.vcfR(vcf_file, verbose=F)
+
+# Check result
+full.vcfr
+head(full.vcfr)
+
+# Clean-up
+rm(vcf_file)
+
+```
+
+# Extract header and variants information to data frames 
+
+```{r}
+
+# Get list with data from VCF header and fixed/standard VCF columns
+meta_fix <- vcfR2tidy(full.vcfr, info_only=T)
+
+# Get data frame with meta-information from vcf header
+full_header.df <- meta_fix$meta
+dim(full_header.df)
+colnames(full_header.df)
+head(full_header.df)
+
+# Get data frame with variants information
+full_variants.df <- as.data.frame(meta_fix$fix)
+dim(full_variants.df)
+colnames(full_variants.df) 
+
+# Clean-up
+rm(meta_fix)
+
+```
+
+# Extract genotype data: GT, DP, GQ and AD  
+
+```{r}
+
+# Extract genotypes as numeric codes: 0/1, 1/1 etc 
+full_gt.mx <- extract.gt(full.vcfr, element="GT")
+dim(full_gt.mx)
+full_gt.mx[1:5,1:3]
+sum(is.na(full_gt.mx))
+
+# Extract genotype depth (its a numeric matrix)
+full_dp.mx <- extract.gt(full.vcfr, element="DP", as.numeric = T)
+dim(full_dp.mx)
+full_dp.mx[1:5,1:3]
+sum(is.na(full_dp.mx))/(nrow(full_dp.mx)*ncol(full_dp.mx))
+quantile(full_dp.mx, na.rm=T)
+hist(full_dp.mx) 
+sum(full_dp.mx < 10, na.rm=T)/(nrow(full_dp.mx)*ncol(full_dp.mx)) # genotypes to be removed
+
+# Extract genotype quality (its a numeric matrix)
+full_gq.mx <- extract.gt(full.vcfr, element="GQ", as.numeric = T)
+dim(full_gq.mx)
+full_gq.mx[1:5,1:3]
+sum(is.na(full_gq.mx))/(nrow(full_gq.mx)*ncol(full_gq.mx))
+quantile(full_gq.mx, na.rm=T)
+hist(full_gq.mx)
+sum(full_gq.mx < 20, na.rm=T)/(nrow(full_gq.mx)*ncol(full_gq.mx)) # genotypes to be removed
+
+# Extract allelic depth
+full_ad.mx <- extract.gt(full.vcfr, element="AD")
+dim(full_ad.mx)
+full_ad.mx[1:5,1:3]
+sum(is.na(full_ad.mx))/(nrow(full_ad.mx)*ncol(full_ad.mx))
+
+# Clean-up
+rm(full.vcfr)
+
+```
+
+# Write header data to text file  
+
+Just in case, for future reference  
+
+```{r}
+
+file_name=file.path(data_folder,"s01_header_data.txt")
+write.table(full_header.df,file_name,quote=F,sep="\t",row.names=F)
+rm(full_header.df,file_name)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(full_variants.df)
+
+dim(full_dp.mx)
+dim(full_gq.mx)
+dim(full_gt.mx)
+dim(full_ad.mx)
+
+```
+
+# Save
+
+```{r}
+
+save.image(file.path(data_folder,"s01_import_vcf_to_R.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+gc()
+Sys.time()
+
+```

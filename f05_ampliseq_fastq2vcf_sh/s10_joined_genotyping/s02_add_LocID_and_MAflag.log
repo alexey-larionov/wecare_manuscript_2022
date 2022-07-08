@@ -1,0 +1,36 @@
+Job id: 10043012
+Job name: s02_add_LocID_and_MAflag
+Allocated node: cpu-e-48
+Time: Mon 18 Mar 14:16:47 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s10_joined_genotyping
+
+------------------ Output ------------------
+
+Calculate and plot bcf-stats for raw VCF
+Mon 18 Mar 14:16:47 GMT 2019
+
+--- Files and folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s10_joined_genotyping
+
+raw_vcf_gz: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/ampliseq_nfe_raw.vcf.gz
+tmp_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/tmp
+
+--- Tools ---
+
+java: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.8.0_40/bin/java
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.6-0/GenomeAnalysisTK.jar
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+targets_interval_list: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_targets/ampliseq_targets_b37.interval_list
+
+Adding locations IDs to INFO field ...
+Making mask for multiallelic variants...
+Adding flag for multiallelic variants
+Done
+Mon 18 Mar 14:17:53 GMT 2019
+

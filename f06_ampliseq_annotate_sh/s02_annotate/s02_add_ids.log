@@ -1,0 +1,17 @@
+Job id: 35925675
+Allocated node: cpu-e-313
+Fri  5 Mar 19:01:18 GMT 2021
+
+Job name: s02_add_ids
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/scripts/s02_annotate
+
+ ------------------ Job progress ------------------ 
+
+Started s01_add_ids: 05Mar2021_19:01:18
+
+Adding variant IDs ...
+
+Done: 05Mar2021_19:01:24
+

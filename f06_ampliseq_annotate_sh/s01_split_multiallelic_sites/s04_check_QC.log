@@ -1,0 +1,56 @@
+Job id: 35992120
+Allocated node: cpu-e-375
+Mon  8 Mar 15:04:06 GMT 2021
+
+Job name: s04_check_QC
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/scripts/s01_split_multiallelic_sites
+
+ ------------------ Job progress ------------------ 
+
+Started s01_check_QC: 08Mar2021_15:04:06
+
+vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s01_split_multiallelic_sites/ampliseq_nfe_locID_MAflag_vqsr_hf_split_clean.vcf.gz
+stats_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s01_split_multiallelic_sites/s04_stats
+
+Extracting header ...
+
+Variant counts:
+
+Number of samples: 739
+Number of SNPs:    11416
+Number of INDELs:  1920
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   13336
+
+Calculating bcfstats...
+
+Making plots...
+Parsing bcftools stats output: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s01_split_multiallelic_sites/s04_stats/ampliseq_nfe_locID_MAflag_vqsr_hf_split_clean.vchk
+Plotting graphs: python3 plot.py
+Creating PDF: pdflatex summary.tex >plot-vcfstats.log 2>&1
+Finished: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/ampliseq/data/s01_split_multiallelic_sites/s04_stats/summary.pdf
+
+--- FILTER ---
+
+   8420 PASS
+   1502 VQSRTrancheSNP97.00to99.00
+   1251 VQSRTrancheSNP99.00to100.00
+    860 DP_LESS_THAN_7390.0
+    577 VQSRTrancheINDEL99.00to100.00
+    440 VQSRTrancheINDEL97.00to99.00
+     84 DP_LESS_THAN_7390.0;VQSRTrancheSNP97.00to99.00
+     59 VQSRTrancheINDEL95.00to97.00
+     55 DP_LESS_THAN_7390.0;VQSRTrancheINDEL97.00to99.00
+     41 DP_LESS_THAN_7390.0;VQSRTrancheSNP99.00to100.00
+     39 DP_LESS_THAN_7390.0;VQSRTrancheINDEL99.00to100.00
+      8 DP_LESS_THAN_7390.0;VQSRTrancheINDEL95.00to97.00
+
+--- DS ---
+
+  13336 .
+
+Done: 08Mar2021_15:04:17
+

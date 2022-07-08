@@ -1,0 +1,26 @@
+Job id: 5913540
+Job name: s02_extract_data
+Allocated node: cpu-e-106
+Time: Tue 16 Oct 17:40:31 BST 2018
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/scripts_and_logs/s01_get_and_check_data
+
+------------------ Output ------------------
+
+Extract source data
+Tue 16 Oct 17:40:31 BST 2018
+
+Settings:
+source_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/data_and_results/s01_source_data/downloaded
+source_file: 180522_K00178_0090_BHVMMTBBXX_alarionov.tar.gz
+target_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/data_and_results/s01_source_data/fastq
+
+Extracting files ...
+Moving extracted files to the target folder...
+
+Done all tasks
+Tue 16 Oct 17:50:33 BST 2018
+
+slurmstepd: error: Exceeded step memory limit at some point.
+slurmstepd: error: Exceeded job memory limit at some point.

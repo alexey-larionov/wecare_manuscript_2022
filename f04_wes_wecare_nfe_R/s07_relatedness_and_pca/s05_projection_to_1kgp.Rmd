@@ -1,0 +1,220 @@
+---
+title: "Projecting WECARE w/o Danish and NFE on 1KGP"
+author: "AL"
+date: "31/01/2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+#options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+
+library(bigsnpr) # for bed_autoSVD() and bed()
+library(bigutilsr) # for prob_dist() and tukey_mc_up() for outlier detection
+library(hexbin) # for plotting svd loadings
+library(ggplot2)
+library(dplyr)
+
+NCORES <- 1
+#NCORES <- nb_cores() # 2
+
+```
+
+# Read wecare bed file
+
+```{r}
+
+# Location of bed file
+bed_file <- file.path(data_folder,"s03_non_related","common_biallelic_autosomal_snps_in_HWE_norel.bed")
+
+# Attach PLINK data to R environment
+wecare.bed <- bed(bed_file) # bigsnpr::bed
+
+# Explore wecare.bed
+wecare.bed
+#names(wecare.bed)
+#str(wecare.bed)
+#attributes(wecare.bed)
+#wecare.bed$bedfile
+#wecare.bed$address
+
+# Clean-up
+rm(bed_file)
+
+```
+
+# Read wecare phenotypes
+
+```{r}
+
+wecare_phenotypes.df <- wecare.bed$fam
+dim(wecare_phenotypes.df)
+head(wecare_phenotypes.df)
+
+#potential_outliers <- wecare_phenotypes.df$sample.ID %in% c("P6_D05", "P5_E09")
+#sum(potential_outliers)
+
+#data_file <- file.path(data_folder,"s04_phenotypes_with_PCs.RData")
+#load(data_file)
+#dim(updated_phenotypes.df)
+#rm(data_file)
+
+```
+
+# Read b37 1KGP data
+
+```{r}
+
+# Location of bed file
+bed_file <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s00_1kgp","kgp_b37_biallelic_snps_autosomal_common_non_related_no_outliers.bed")
+
+# Read (=attach?) data
+kgp.bed <- bed(bed_file) # bigsnpr::bed
+kgp.bed
+
+# Clean-up
+rm(bed_file)
+
+```
+
+# Load population descriptions for 1KGP
+
+Not used for now ...  
+
+```{r}
+
+data_file <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s00_1kgp","igsr-1000_genomes_phase_3_release.tsv")
+
+kgp_pop.df <- read.table(data_file, header=T, sep = "\t")
+dim(kgp_pop.df)
+head(kgp_pop.df)
+
+rm(data_file)
+
+```
+
+# Check variants overlap between 1kgp and wecare
+
+```{r}
+
+wecare_map.df <- wecare.bed$map
+dim(wecare_map.df)
+
+kgp_map.df <- kgp.bed$map
+dim(kgp_map.df)
+
+x <- inner_join(kgp_map.df, wecare_map.df, by=c("chromosome","physical.pos"))
+y <- inner_join(kgp_map.df, wecare_map.df, by=c("chromosome","physical.pos","allele1","allele2"))
+
+dim(x)
+head(x)
+
+dim(y)
+head(y)
+
+rm(x,y)
+
+```
+
+# Project Wecare to 1KGP
+
+A simple projecting procedure would be multiplying the genotypes by the corresponding PC loadings.  
+However, the augmented algorithm (OADP) is used to avoid shrinkage (the shrinkage is becoming evident in PCs > 5).
+
+```{r}
+
+# Calculate the "projection"
+proj <- bed_projectPCA(kgp.bed, wecare.bed, ncores=NCORES)
+
+# Explore proj ...
+names(proj)
+str(proj)
+# proj$obj.svd.ref # big_SVD object computed from reference data.
+
+```
+
+# Plot 2 top PC-s
+
+```{r}
+
+# Get 1KGP PCs
+kgen_pcs.mx <- predict(proj$obj.svd.ref)
+dim(kgen_pcs.mx)
+
+# Get wecare projections
+wecare_nfe_pcs.mx <- proj$OADP_proj 
+dim(wecare_nfe_pcs.mx)
+# OADP projection of new data into space of reference PCA
+# proj$obj.svd.ref # big_SVD object computed from reference data.
+
+# Make colouts for the plot
+x <- cbind(kgen_pcs.mx[, 1:2],"grey")
+y <- cbind(wecare_nfe_pcs.mx[, 1:2],"red")
+#"blue" -> y[potential_outliers,3]
+z <- rbind(x,y)
+
+# Plot 2 top PC-s
+plot(z[,1:2],col=z[,3], xlab="PC1", ylab="PC2",
+     main="Projecting WECARE-NFE w/o Danish to 1KGP")
+text(34,-7,"AFR")
+text(-18,-26,"EAS")
+#text(-20,0,"AMR")
+#text(-11,8,"SAS")
+text(-12,0,"AMR/SAS")
+text(-7.5,22,"EUR")
+
+# Clean-up
+rm(x,y,z) # potential_outliers
+
+```
+
+# End section
+
+```{r}
+
+ls()
+Sys.time()
+gc()
+
+```

@@ -1,0 +1,43 @@
+Job id: 9960314
+Job name: s01_genotype_gvcfs
+Allocated node: cpu-e-267
+Time: Wed 13 Mar 17:51:59 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s10_joined_genotyping
+
+------------------ Output ------------------
+
+Joined variant calling from Ampliseq panel and NFE WES
+Wed 13 Mar 17:51:59 GMT 2019
+
+--- Folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s10_joined_genotyping
+
+nfe_gvcf_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_nfe_gvcfs
+ampliseq_gvcf_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s09_gvcf/combined_gvcf
+
+raw_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/ampliseq_nfe_raw.vcf.gz
+genotyping_log: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/ampliseq_nfe_raw.log
+
+--- Tools ---
+
+java: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.8.0_40/bin/java
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.6-0/GenomeAnalysisTK.jar
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+targets_interval_list: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_targets/ampliseq_targets_b37.interval_list
+
+--- Additional setings ---
+
+maxAltAlleles: 6
+stand_call_conf: 30.0
+stand_emit_conf: 30.0
+
+Started genotyping gvcfs ...
+Done
+Wed 13 Mar 17:57:37 GMT 2019
+

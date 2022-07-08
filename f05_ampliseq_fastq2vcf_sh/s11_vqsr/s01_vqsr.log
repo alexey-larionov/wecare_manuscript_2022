@@ -1,0 +1,48 @@
+ModuleCmd_Load.c(213):ERROR:105: Unable to locate a modulefile for 'pandoc/1.15.2.1'
+Job id: 10043247
+Job name: s01_vqsr
+Allocated node: cpu-e-119
+Time: Mon 18 Mar 14:47:02 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s11_vqsr
+
+------------------ Output ------------------
+
+VQSR for Ampliseq panel and NFE WES
+Mon 18 Mar 14:47:02 GMT 2019
+
+--- Files and folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s11_vqsr
+vqsr_tmp_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s11_vqsr/temp
+
+raw_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s10_raw_vcf/ampliseq_nfe_locID_MAflag.vcf
+
+--- Tools ---
+
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.6-0/GenomeAnalysisTK.jar
+java: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.8.0_40/bin/java
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+hapmap: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/hapmap_3.3.b37.vcf
+omni: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/1000G_omni2.5.b37.vcf
+phase1_1k_hc: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/1000G_phase1.snps.high_confidence.b37.vcf
+dbsnp_138: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/dbsnp_138.b37.vcf
+
+targets_interval_list: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_targets/ampliseq_targets_b37.interval_list
+
+--- Settings ---
+
+SNP_TS: 97.0
+INDEL_TS: 95.0
+
+Training vqsr snp model ...
+Applying vqsr snp model ...
+Training vqsr indel model ...
+Applying vqsr indel model...
+Done all tasks
+Mon 18 Mar 14:48:48 GMT 2019
+

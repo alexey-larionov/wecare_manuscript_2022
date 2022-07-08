@@ -1,0 +1,62 @@
+Job id: 9494199
+Job name: make_idrl_targets
+Allocated node: cpu-e-858
+Time: Fri 15 Feb 17:46:09 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s08_preprocess_bams
+
+------------------ Output ------------------
+
+Prepare targets for local INDEL realignment (in batches)
+Fri 15 Feb 17:46:09 GMT 2019
+
+--- Folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s08_preprocess_bams
+
+clean_bam_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s06_clean_bam/bam
+idrl_bam_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s08_preprocessed_bam/idrl_bam
+
+--- Tools ---
+
+java7: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.7.0_76/bin/java
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.4-46/GenomeAnalysisTK.jar
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+indels_1k: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/1000G_phase1.indels.b37.vcf
+indels_mills: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/Mills_and_1000G_gold_standard.indels.b37.vcf
+
+targets_interval_list: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_targets/ampliseq_targets_b37.interval_list
+
+Detected 541 bam files in the source folder
+Made 22 batches of up to 25 samples each
+
+17:46:52 Done batch 1
+17:47:29 Done batch 2
+17:48:08 Done batch 3
+17:48:41 Done batch 4
+17:49:12 Done batch 5
+17:49:54 Done batch 6
+17:50:40 Done batch 7
+17:51:12 Done batch 8
+17:51:45 Done batch 9
+17:52:31 Done batch 10
+17:53:09 Done batch 11
+17:53:42 Done batch 12
+17:54:19 Done batch 13
+17:54:49 Done batch 14
+17:55:35 Done batch 15
+17:56:09 Done batch 16
+17:56:59 Done batch 17
+17:57:28 Done batch 18
+17:58:01 Done batch 19
+17:58:42 Done batch 20
+17:59:12 Done batch 21
+17:59:42 Done batch 22
+
+Done all tasks
+Fri 15 Feb 17:59:42 GMT 2019
+

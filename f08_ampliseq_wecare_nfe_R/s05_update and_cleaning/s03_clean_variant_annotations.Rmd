@@ -1,0 +1,258 @@
+---
+title: "Ampliseq wecare NFFE: clean variant annotations"
+author: "Alexey Larionov"
+date: "27 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary  
+
+Remove empty and uniform variants annotations: drops the number of variant annotations from 138 to 115.  
+
+Some data types will be updated later, as well as some more variant annotations will be excluded later.  
+
+**Downsampling note** 
+
+Downsampling was suppressed by the GATK pipeline in Ampliseq because it uses PCR enrichment.  Then I explicitly verified that "DS" filed in the input VCF contained dots only.  Somehow these dots in DS field were interpreted as TRUE when reading of the data to data-frames.  So, these values are misleading.  No other mis-interpretations of the data were noted under the visual inspection after reading into vcfR.    
+
+Input and output data:  
+11,698 vars and 587 samples (198 NFFE, 194 UBC & 195 CBC)  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Working folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+setwd(scripts_folder)
+
+# Libraries
+library(dplyr)
+
+```
+
+# Read data
+
+No changes were made during the phenotypes check   
+
+```{r}
+
+load(file.path(data_folder,"s01_update_genotypes.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(alt_fraction.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistence of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(alt_fraction.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(alt_fraction.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Explore data types in variants data frame
+
+```{r}
+
+# Explore
+colnames(variants.df)
+str(variants.df, list.len=ncol(variants.df))
+
+# No dots and empty strings for NA (done after reading VCF to R)
+sum(variants.df==".", na.rm=T)
+sum(variants.df=="", na.rm=T)
+
+```
+
+# Remove empty fields
+
+```{r}
+
+# Function to detect empty vectors
+all_na.udf <- function(x){all(is.na(x))}
+
+#Detect empty annotations
+empty_fields <- apply(variants.df, 2, all_na.udf)
+sum(empty_fields)
+colnames(variants.df)[empty_fields]
+
+# Remove empty annotations
+# VQSLOD and culprit are empty because allele-specific GATK functions were used
+variants.df <- variants.df[,!empty_fields]
+dim(variants.df)
+
+# Clean-up
+rm(all_na.udf, empty_fields)
+
+```
+
+# Remove uniform fields
+
+```{r}
+
+# Function to detect uniform vector of an arbitrary datatype
+# (assuming no empty and all-NA vectors)
+uniform_vector.udf <- function(x)(length(table(x))==1)
+
+# Dtect niform fields 
+uniform_fields <- apply(variants.df, 2, uniform_vector.udf)
+sum(uniform_fields)
+colnames(variants.df)[uniform_fields]
+
+# Explore content of uniform fields 
+variants.df[1:5,uniform_fields]
+
+# Explore content of some non-uniform fields
+table(variants.df[,"CLNDNINCL"])
+table(variants.df[,"CLNDISDBINCL"])
+table(variants.df[,"CLNSIGINCL"])
+
+table(variants.df[,"vep_GENE_PHENO"])
+table(variants.df[,"vep_PHENO"])
+
+# Why is this field non-uniform?
+summary(as.factor(variants.df$vep_SYMBOL_SOURCE))
+
+# Remove unifirm fields
+variants.df <- variants.df[,!uniform_fields]
+
+# Check result
+dim(variants.df)
+variants.df[1:5,1:5] # Rownames are preserved
+
+# Clean up
+rm(uniform_vector.udf, uniform_fields)
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(alt_fraction.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(variants.df)
+dim(phenotypes.df)
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(alt_fraction.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(alt_fraction.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save result
+
+```{r}
+
+save.image(file.path(data_folder, "s03_clean_variant_annotations.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

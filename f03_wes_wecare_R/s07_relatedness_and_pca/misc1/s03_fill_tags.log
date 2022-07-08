@@ -1,0 +1,35 @@
+Job id: 29670608
+Allocated node: cpu-e-174
+Mon  5 Oct 20:06:43 BST 2020
+
+Job name: s03_fill_tags
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s05_pca
+
+ ------------------ Job progress ------------------ 
+
+Started s03_fill_tags
+Mon  5 Oct 20:06:43 BST 2020
+
+Source vcf counts
+
+Number of samples: 336
+Number of SNPs:    230680
+Number of INDELs:  14012
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   244692
+
+Recalculating tags after samples removal (AC,AN,AF etc) ...
+Counts in the vcf file after recalculating tags
+Number of samples: 336
+Number of SNPs:    230680
+Number of INDELs:  14012
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   244692
+
+Done
+Mon  5 Oct 20:09:07 BST 2020
+

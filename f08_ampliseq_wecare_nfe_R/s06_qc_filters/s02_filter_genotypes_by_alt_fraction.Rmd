@@ -1,0 +1,420 @@
+---
+title: "Ampliseq wecare NFFE: filter genotypes by alt fraction"
+author: "Alexey Larionov"
+date: "27 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Remove (set to NA) <1% genotypes.  
+
+The genotypes are removed if:    
+
+- In Ref-Ref genotypes: Alt Fraction > 10%  
+- In Alt-ALt genotypes: Alt Fraction < 90%  
+- In Ref-Alt genotypes: Alt Fraction < 10% or Alt Fraction > 90%
+
+Then, remove non-polymorphic sites, if appear after the filtering.  
+
+Check call rates (per variant and per sample) before and after filtering.  
+
+Note:  
+The alt fraction was calculated before dp and gq genotypes filtering.  
+After filtering the alt allele fraction might have slightly changed;  
+However, this minor change was considered inconsequential.  
+
+Input data: 6,194 variants x 587 samples (198 NFFE, 194 UBC & 195 CBC)  
+Output data: 6,157 variants x 587 samples (198 NFFE, 194 UBC & 195 CBC)  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+setwd(scripts_folder)
+
+# Thresholds 
+max_alt_fraction_rr <- 0.1
+min_alt_fraction_aa <- 0.9
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s01_filter_genotypes_by_dp_and_gq.RData"))
+
+# Update folders (just in case)
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+dim(dp.mx)
+dim(alt_fraction.mx)
+
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+sum(rownames(gt_add.mx) != rownames(alt_fraction.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+sum(colnames(gt_add.mx) != colnames(alt_fraction.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Genotypes before filtering
+
+```{r}
+
+sum(is.na(alt_fraction.mx))
+
+# Fraction of NA genotypes
+sum(is.na(gt_add.mx))/(nrow(gt_add.mx)*ncol(gt_add.mx))
+gt_add.mx[1:5,1:5]
+
+# Index of non-NA gt  
+non_NA_gt <- !is.na(gt_add.mx)
+
+# Indexes of homs and hets
+summary(as.factor(gt_add.mx))
+ref_ref <- gt_add.mx == 0
+ref_alt <- gt_add.mx == 1
+alt_alt <- gt_add.mx == 2
+
+# Alt fraction in different genotypes
+
+hist(alt_fraction.mx[ref_ref & non_NA_gt], 
+     main="Alt fraction in RR non-NA genotypes",
+     lab=T, ylim=c(0,3e6))
+
+abline(v=max_alt_fraction_rr, lty=2, col="red")
+
+hist(alt_fraction.mx[alt_alt & non_NA_gt], 
+     main="Alt fraction in AA non-NA genotypes",
+     lab=T, ylim=c(0,5e4))
+
+abline(v=min_alt_fraction_aa, lty=2, col="red")
+
+hist(alt_fraction.mx[ref_alt & non_NA_gt], 
+     main="Alt fraction in RA non-NA genotypes",
+     lab=T, ylim=c(0,2.5e4))
+
+abline(v=max_alt_fraction_rr, lty=2, col="red")
+abline(v=min_alt_fraction_aa, lty=2, col="red")
+
+```
+
+# Variant call rates before filtering
+
+```{r}
+
+# Function to calculate call rate
+call_rate.udf <- function(x){1-sum(is.na(x))/length(x)}
+
+# Call rates per variant
+var_call_rate <- apply(gt_add.mx,1,call_rate.udf)
+
+hist(var_call_rate, breaks=50, main="Call rate per variant", xlab="Call rates")
+abline(v=0.85, lty=2, col="red")
+
+plot(var_call_rate, main="Call rate per variant")
+abline(h=0.85, lty=2, col="red")
+
+# SKAT requires at least 58% call rate per variant
+sum(var_call_rate < 0.85)/length(var_call_rate)
+
+# Clean-up
+rm(var_call_rate)
+
+```
+
+# Sample call rates before filtering
+
+```{r}
+
+# Call rates per sample
+case_call_rate <- apply(gt_add.mx,2,call_rate.udf)
+
+hist(case_call_rate, xlim=c(0,1), main="Call rate per sample", xlab="Call rates")
+abline(v=0.5, lty=2, col="red")
+
+plot(case_call_rate, ylim=c(0,1), main="Call rate per sample")
+abline(h=0.5, lty=2, col="red")
+
+low_call_rate_indices <- which(case_call_rate < 0.5)
+low_call_rate_values <- case_call_rate[low_call_rate_indices]
+low_call_rate_samples <- substr(names(low_call_rate_values),1,3)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=c(1,3,1), cex=0.7)
+
+# Clean-up
+rm(case_call_rate,
+   low_call_rate_indices,low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Filter genotypes
+
+```{r}
+
+# fraction of na genotypes before filter
+sum(is.na(gt_add.mx))/(nrow(gt_add.mx)*ncol(gt_add.mx))
+
+# Apply filter to gt_add
+NA -> gt_add.mx[ ref_ref & alt_fraction.mx > max_alt_fraction_rr ]
+NA -> gt_add.mx[ alt_alt & alt_fraction.mx < min_alt_fraction_aa ]
+
+NA -> gt_add.mx[ ref_alt & alt_fraction.mx < max_alt_fraction_rr ]
+NA -> gt_add.mx[ ref_alt & alt_fraction.mx > min_alt_fraction_aa ]
+
+# Apply filter to gt_num
+NA -> gt_num.mx[ ref_ref & alt_fraction.mx > max_alt_fraction_rr ]
+NA -> gt_num.mx[ alt_alt & alt_fraction.mx < min_alt_fraction_aa ]
+
+NA -> gt_num.mx[ ref_alt & alt_fraction.mx < max_alt_fraction_rr ]
+NA -> gt_num.mx[ ref_alt & alt_fraction.mx > min_alt_fraction_aa ]
+
+# Apply filter to gt_chr
+NA -> gt_chr.mx[ ref_ref & alt_fraction.mx > max_alt_fraction_rr ]
+NA -> gt_chr.mx[ alt_alt & alt_fraction.mx < min_alt_fraction_aa ]
+
+NA -> gt_chr.mx[ ref_alt & alt_fraction.mx < max_alt_fraction_rr ]
+NA -> gt_chr.mx[ ref_alt & alt_fraction.mx > min_alt_fraction_aa ]
+
+# fraction of na genotypes after filter
+sum(is.na(gt_add.mx))/(nrow(gt_add.mx)*ncol(gt_add.mx))
+
+```
+
+# Remove non-polymorphic sites
+
+After genotypes filtering some variant sites may become non-polymorphic
+
+```{r}
+
+# Function to detect uniform vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+    
+uniformity_check <- apply(gt_add.mx,1,uniformity_check.udf)
+summary(as.factor(uniformity_check))
+non_uniform_sites <- uniformity_check == "Non-Uniform"
+
+# Update matrices and data-frame(s)
+gt_add.mx <- gt_add.mx[non_uniform_sites,]
+gt_num.mx <- gt_num.mx[non_uniform_sites,]
+gt_chr.mx <- gt_chr.mx[non_uniform_sites,]
+dp.mx <- dp.mx[non_uniform_sites,]
+alt_fraction.mx <- alt_fraction.mx[non_uniform_sites,]
+
+variants.df <- variants.df[non_uniform_sites,]
+
+# Clean-up
+rm(uniformity_check.udf,uniformity_check,non_uniform_sites)
+
+```
+
+# Genotypes after filtering
+
+```{r}
+
+summary(as.factor(gt_add.mx))
+
+# Fraction of NA genotypes
+sum(is.na(gt_add.mx))/(nrow(gt_add.mx)*ncol(gt_add.mx))
+gt_add.mx[1:5,1:5]
+
+# Index of non-NA gt  
+non_NA_gt <- !is.na(gt_add.mx)
+
+# Indexes of homs and hets
+ref_ref <- gt_add.mx == 0
+ref_alt <- gt_add.mx == 1
+alt_alt <- gt_add.mx == 2
+
+# Alt fraction in different genotypes
+
+hist(alt_fraction.mx[ref_ref & non_NA_gt], xlim=c(0,1),
+     main="Alt fraction in RR non-NA genotypes")
+
+abline(v=max_alt_fraction_rr, lty=2, col="red")
+
+hist(alt_fraction.mx[alt_alt & non_NA_gt], xlim=c(0,1),
+     main="Alt fraction in AA non-NA genotypes")
+
+abline(v=min_alt_fraction_aa, lty=2, col="red")
+
+hist(alt_fraction.mx[ref_alt & non_NA_gt], xlim=c(0,1),
+     main="Alt fraction in RA non-NA genotypes")
+
+abline(v=max_alt_fraction_rr, lty=2, col="red")
+abline(v=min_alt_fraction_aa, lty=2, col="red")
+
+# Clean-up
+rm(alt_fraction.mx, non_NA_gt, ref_ref, ref_alt, alt_alt, 
+   min_alt_fraction_aa, max_alt_fraction_rr)
+
+```
+
+# Variant call rates after filtering
+
+```{r}
+
+# Call rates per variant
+var_call_rate <- apply(gt_add.mx,1,call_rate.udf)
+
+hist(var_call_rate, breaks=50, main="Call rate per variant", xlab="Call rates")
+abline(v=0.85, lty=2, col="red")
+
+plot(var_call_rate, main="Call rate per variant")
+abline(h=0.85, lty=2, col="red")
+
+# SKAT requires at least 85% call rate per variant
+sum(var_call_rate < 0.85)/length(var_call_rate)
+
+# Clean-up
+rm(var_call_rate)
+
+```
+
+# Sample call rates after filtering
+
+```{r}
+
+# Call rates per sample
+case_call_rate <- apply(gt_add.mx,2,call_rate.udf)
+
+hist(case_call_rate, xlim=c(0,1), main="Call rate per sample", xlab="Call rates")
+abline(v=0.5, lty=2, col="red")
+
+plot(case_call_rate, ylim=c(0,1), main="Call rate per sample")
+abline(h=0.5, lty=2, col="red")
+
+low_call_rate_indices <- which(case_call_rate < 0.5)
+low_call_rate_values <- case_call_rate[low_call_rate_indices]
+low_call_rate_samples <- substr(names(low_call_rate_values),1,3)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=c(1,3,1), cex=0.7)
+
+low_call_rate_values
+
+# Clean-up
+rm(call_rate.udf,case_call_rate,
+   low_call_rate_indices,low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+dim(dp.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s02_filter_genotypes_by_alt_fraction.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

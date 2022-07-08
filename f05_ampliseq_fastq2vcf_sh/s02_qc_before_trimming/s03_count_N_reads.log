@@ -1,0 +1,69 @@
+Job id: 5938530
+Job name: s03_count_N_reads
+Allocated node: cpu-e-146
+Time: Thu 18 Oct 17:58:26 BST 2018
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/scripts_and_logs/s02_qc_before_trimming
+
+------------------ Output ------------------
+
+Conunt 35/27 x N reads before trimming
+Thu 18 Oct 17:58:26 BST 2018
+
+base_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3
+fastq_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/data_and_results/s01_source_data/fastq
+counts_file: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare_ampliseq/analysis3/data_and_results/s02_qc_before_trimming/count_N_reads/count_N_reads.txt
+
+Found 541 R1 fastq files
+Found 541 R2 fastq files
+Explore result
+sample_no	illumina_id	read_no	lane_no	total_reads	n_reads
+100	S8	R1	L007	1212450	13027
+101	S528	R1	L008	1043060	157460
+102	S466	R1	L008	830123	26610
+103	S147	R1	L007	655803	22356
+104	S325	R1	L008	1388978	14886
+105	S337	R1	L008	1181142	109192
+106	S303	R1	L008	1090121	7301
+107	S467	R1	L008	805701	117791
+108	S482	R1	L008	36	2
+
+91	S485	R2	L008	1288506	99534
+92	S45	R2	L007	1699005	22523
+93	S338	R2	L008	1659886	12546
+94	S143	R2	L007	654753	13173
+95	S517	R2	L008	1673642	101816
+96	S236	R2	L007	864671	93850
+97	S509	R2	L008	1832418	399847
+98	S335	R2	L008	1120828	118025
+99	S418	R2	L008	1124157	177927
+9	S346	R2	L008	897600	4165
+
+450	S436	R1	L008	894777	56667
+451	S37	R1	L007	1143166	7438
+452	S86	R1	L007	1900736	6119
+453	S27	R1	L007	1776253	12498
+454	S401	R1	L008	905576	362760
+455	S516	R1	L008	1171188	28842
+456	S38	R1	L007	1363736	14416
+457	S462	R1	L008	1183418	189735
+458	S73	R1	L007	701389	3375
+459	S108	R1	L007	793535	28249
+45	S268	R1	L007	1161366	456064
+450	S436	R2	L008	894777	56052
+451	S37	R2	L007	1143166	7242
+452	S86	R2	L007	1900736	5926
+453	S27	R2	L007	1776253	12273
+454	S401	R2	L008	905576	359365
+455	S516	R2	L008	1171188	28042
+456	S38	R2	L007	1363736	14127
+457	S462	R2	L008	1183418	188307
+458	S73	R2	L007	701389	3299
+459	S108	R2	L007	793535	27816
+45	S268	R2	L007	1161366	452439
+
+Done all fastq files
+Thu 18 Oct 19:17:05 BST 2018
+
+slurmstepd: error: Exceeded step memory limit at some point.

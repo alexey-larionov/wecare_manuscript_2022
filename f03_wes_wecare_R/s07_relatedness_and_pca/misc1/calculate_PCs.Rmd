@@ -1,0 +1,243 @@
+---
+title: "PCA"
+author: "AL"
+date: "04/10/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Summary
+
+Calculate PC-s for wecare wes dataset  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+
+options(width=999)
+
+```
+
+# Start section
+
+```{r}
+
+Sys.time()
+gc()
+
+rm(list=ls())
+
+base_folder <- "/rds/project/erf33/rds-erf33-medgen//resources/1kgp/b38"
+setwd(base_folder)
+
+#install.packages("bigsnpr")
+library(bigsnpr) # for bed_autoSVD() and bed()
+library(bigutilsr) # for prob_dist() and tukey_mc_up()
+library(ggplot2)
+library(hexbin)
+
+NCORES <- 2
+#NCORES <- nb_cores() 
+
+```
+
+# Read data from bed-bim-fam file set
+
+```{r}
+
+bed_file <- file.path(base_folder,"data","s03_non_related","cclg.bed")
+
+cclg.bed <- bed(bed_file) # bigsnpr::bed
+cclg.bed
+
+attributes(cclg.bed)
+str(cclg.bed)
+
+x <- bed_MAF(cclg.bed)
+head(x)
+
+cclg.bed$bedfile
+cclg.bed$address
+
+x <- cclg.bed$fam
+class(x)
+head(x)
+
+x <- cclg.bed$map
+class(x)
+head(x)
+
+cclg.maf <- bed_MAF(cclg.bed)
+head(cclg.maf)
+
+rm(x, bed_file)
+
+```
+
+# Calculate PCA
+
+Takes care about LD etc.  
+See ?plot.big_SVD for plotting svd objets.  
+
+```{r}
+
+# bigsnpr::bed_autoSVD, Default k = 10
+cclg.svd <- bed_autoSVD(cclg.bed, ncores = NCORES) 
+
+# Variants not in LD (detected by clumping during autoSVD)
+vars_not_in_LD <- attr(cclg.svd, "subset")
+length(vars_not_in_LD)
+
+#attributes(cclg.svd)
+str(cclg.svd)
+
+# Eigenvalues
+plot(cclg.svd$d)
+plot(cclg.svd) # default type="screeplot" see ?plot.big_SVD  
+
+# Eigenvectors
+dim(cclg.svd$u)
+head(cclg.svd$u)
+
+plot(cclg.svd$u[,1],cclg.svd$u[,2])
+plot(cclg.svd,type = "scores")
+plot(cclg.svd,type = "scores",scores=1:10,coeff=0.4)
+
+# Loadings
+dim(cclg.svd$v)
+head(cclg.svd$v)
+plot(cclg.svd,type="loadings",loadings=1:10,coeff=0.4)
+
+```
+
+# Selecting outliers 
+
+```{r}
+
+# Eigenvectors
+U <- cclg.svd$u
+
+# Measure(s) of "outlieness"  
+prob <- prob_dist(U, ncores=NCORES) # bigutilsr::prob_dist
+S <- prob$dist.self / sqrt(prob$dist.nn) # alternatively: test$dist.self / test$dist.nn ?
+tukey_threshold <- tukey_mc_up(S) # bigutilsr::tukey_mc_up
+
+# Histogram by "outlieness" score
+ggplot() +
+  geom_histogram(aes(S), color = "black", fill = "blue", alpha = 0.3) +
+  theme_bigstatsr() +
+  geom_vline(xintercept=tukey_threshold, colour="red") +
+  labs(x = "Statistic of outlierness (S)", y = "Frequency (sqrt-scale)")
+
+# Indices for outliers/non-outliers (for convinience)
+# Indices are numeric (not logical): rbigparallelr::rows_along(x): seq_len(nrow(x))
+# The threshold of 0.9 has been selected manually from the hhistogram
+samples_wo_outliers <- rows_along(cclg.bed)[S < 0.9]
+outliers <- rows_along(cclg.bed)[S >= 0.9]
+
+rm(tukey_threshold, U)
+
+```
+
+# Visualising "outlieness" on scatterplots
+
+```{r}
+
+# Scatterplot with "outlieness" score colourcoded
+plot(cclg.svd, 
+     type = "scores", 
+     scores = c(1,2), 
+     coeff = 0.6) +
+  aes(color = S) + 
+  scale_colour_viridis_c()
+
+plot(cclg.svd, 
+     type = "scores", 
+     scores = c(1,2), 
+     coeff = 0.6) +
+  aes(color = S > 0.9)
+
+```
+
+# PCA w/o outliers
+
+```{r}
+
+# Repeating bed_autoSVD w/o outliers 
+# and usisng already pre-selected variants.  
+# To select the varaints, which are not in LD again: 
+# ind.col=... and thr.r2=NA could be omitted.
+cclg.no.outliers.svd <- bed_autoSVD(cclg.bed,
+                        ind.row = samples_wo_outliers,
+                        ind.col = vars_not_in_LD, 
+                        thr.r2 = NA,
+                        ncores = NCORES)
+
+plot(cclg.no.outliers.svd)
+
+plot(cclg.no.outliers.svd, 
+     type = "scores", 
+     scores = 1:10, 
+     coeff = 0.4)
+
+plot(cclg.no.outliers.svd, 
+     type = "loadings", 
+     loadings = 1:10, 
+     coeff = 0.4)
+
+```
+
+# Project outliers 
+
+A simple projecting procedure would be multiplying the genotypes by the corresponding PC loadings.  
+
+However, the augmented algorithm (OADP) is used to avoid shrinkage (the shrincage is becoming evident in PCs > 10). 
+
+```{r}
+
+# Make NA matrix to allocate PCs for all samples: not-outliers and projected-outliers
+PCs <- matrix(NA, nrow(cclg.bed), ncol(cclg.no.outliers.svd$u))
+
+# A special case of using predict.big_SVD to copy
+# scored available from cclg.no.outliers.svd to the new matrix
+# (i.e. omitting the outliers rows)
+PCs[samples_wo_outliers, ] <- predict(cclg.no.outliers.svd)
+
+# Calculate the "projection" - whatever it is - for the outliers ...
+proj <- bed_projectSelfPCA(cclg.no.outliers.svd, 
+                           cclg.bed,
+                           ind.row = outliers,
+                           ncores = 1) # for a few individuals
+
+# Add the "projected" scores for outlying indivoduals
+PCs[outliers, ] <- proj$OADP_proj
+
+# Plot projeted outliers
+plot(PCs[samples_wo_outliers, 1:2], pch=1, xlab="PC1", ylab="PC2", 
+     main="PC1 vs PC2 recalulated w/o outliers,\nthen outliers projected (red)")
+points(PCs[outliers, 1:2], pch=19, col = "red")
+
+```
+
+# End section
+
+```{r}
+
+ls()
+Sys.time()
+gc()
+
+```
+

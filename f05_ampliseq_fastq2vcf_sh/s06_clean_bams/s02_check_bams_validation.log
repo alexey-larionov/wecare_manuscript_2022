@@ -1,0 +1,23 @@
+Job id: 9486434
+Job name: s02_check_bams_validation
+Allocated node: cpu-e-304
+Time: Thu 14 Feb 21:39:46 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s06_clean_bams
+
+------------------ Output ------------------
+
+Check results of BAMs validation
+Thu 14 Feb 21:39:46 GMT 2019
+
+clean_bam_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s06_clean_bam/bam
+
+Detected 541 cleaned bam files in the folder
+Checked samples: 541
+Passed samples: 541
+Failed samples: 0
+
+Done all tasks
+Thu 14 Feb 21:39:47 GMT 2019
+

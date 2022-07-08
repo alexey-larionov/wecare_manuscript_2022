@@ -1,0 +1,149 @@
+---
+title: "Ampliseq wecare only: check phenotypes"
+author: "Alexey Larionov"
+date: "22 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Check phenotypes:  
+
+- no data types should be converted  
+- no misses value codes should be updated  
+
+No data change:  
+10,864 vars and 389 samples (194 UBC & 195 CBC)  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Working folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+setwd(scripts_folder)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s01_update_genotypes.RData"))
+
+# Update folders (just in case)
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(alt_fraction.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistence of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(alt_fraction.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(alt_fraction.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Check data types
+
+```{r}
+
+str(phenotypes.df)
+
+```
+
+# Check missed values
+
+```{r}
+
+# Check presence of NA-s
+sum(is.na(phenotypes.df))
+
+# Other possible missed value codes
+sum(phenotypes.df=="",na.rm=T)
+sum(phenotypes.df==".",na.rm=T)
+
+```
+
+# No final check and save
+
+Nothing changed, so there is no need for final check and save
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

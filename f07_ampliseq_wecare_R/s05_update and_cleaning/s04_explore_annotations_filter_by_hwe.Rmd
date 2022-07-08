@@ -1,0 +1,372 @@
+---
+title: "Ampliseq wecare only: explore variant annotations, filter by HWE"
+author: "Alexey Larionov"
+date: "23 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Explore variants annotations and add HWE and filter by HWE  
+
+This changes number of variant annotations from 115 to 116  
+
+120 variants grossly violating HWE (p<10-6) have been excluded.  
+
+Input data: 10,864 vars and 389 samples (194 UBC & 195 CBC)  
+Output data: 10,744 variants x 389 samples (194 UBC + 195 CBC)  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+setwd(scripts_folder)
+
+# Libraries
+library(dplyr)
+library(HardyWeinberg)
+
+```
+
+# Read data
+
+```{r}
+
+load(file.path(data_folder,"s03_clean_variant_annotations.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s05_update and_cleaning")
+scripts_folder <- file.path(base_folder,"scripts","s05_update and_cleaning")
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(alt_fraction.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(alt_fraction.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(alt_fraction.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Explore various variant annotation fields  
+
+## List of annotations
+
+```{r}
+colnames(variants.df)
+str(variants.df, list.len=ncol(variants.df))
+```
+
+## Accessory function to explore selected fields
+
+Splits field by a separator, and then counts entries  
+
+```{r}
+
+explore_field.udf <- function(field, field_separator){
+  a <- strsplit(as.vector(field),paste("\\",field_separator,sep=""))
+  b <- as.vector(unlist(a))
+  sort(table(b), decreasing = TRUE)
+}
+
+```
+
+## VEP consequence & Impact
+
+```{r}
+explore_field.udf(variants.df$vep_Consequence, "&")
+sort(table(variants.df$vep_IMPACT, useNA = "always"), decreasing=T)
+```
+
+## InbreedingCoeff
+
+```{r}
+hist(variants.df$InbreedingCoeff, ylim=c(0,10000), lab=T)
+```
+
+## ExcessHet
+
+```{r}
+hist(variants.df$ExcessHet, ylim=c(0,12000), lab=T)
+plot(-log10(variants.df$ExcessHet), main="- log10 ExcessHet", xlab="Variants")
+```
+
+## MLEAF
+
+```{r}
+hist(as.numeric(variants.df$MLEAF),ylim=c(0,12000), lab=T)
+```
+
+## MQ
+
+```{r}
+hist(variants.df$MQ,ylim=c(0,12000), lab=T)
+```
+
+## MultiAllelic
+
+```{r}
+table(variants.df$Multiallelic, useNA = "always")
+```
+
+## NEGATIVE_TRAIN_SITE
+
+```{r}
+table(variants.df$NEGATIVE_TRAIN_SITE, useNA = "always")
+```
+
+## POSITIVE_TRAIN_SITE
+
+```{r}
+table(variants.df$POSITIVE_TRAIN_SITE, useNA = "always")
+```
+
+## SIFT Polyphen
+
+```{r}
+sort(table(variants.df$SIFT_call, useNA = "always"), decreasing=T)
+sort(table(variants.df$PolyPhen_call, useNA = "always"), decreasing=T)
+```
+
+## CLNSIG
+
+```{r}
+sort(table(variants.df$CLNSIG, useNA = "always"), decreasing=T)
+explore_field.udf(variants.df$CLNSIG, ",")
+```
+
+## CLNREVSTAT
+
+```{r}
+sort(table(variants.df$CLNREVSTAT, useNA = "always"), decreasing=T)
+explore_field.udf(variants.df$CLNREVSTAT, ",")
+```
+
+## CLNDN
+
+```{r}
+sort(table(variants.df$CLNDN, useNA = "always"), decreasing=T)[1:10]
+explore_field.udf(variants.df$CLNDN, "|")
+```
+
+## SYMBOL
+
+```{r}
+sum(is.na(variants.df$SYMBOL))
+```
+
+## DISTANCE (Shortest distance from variant to transcript)
+
+```{r}
+hist(as.numeric(variants.df$vep_DISTANCE), lab=T, ylim=c(0,32))
+table(as.numeric(variants.df$vep_DISTANCE), useNA = "always")
+```
+
+## STRAND
+
+```{r}
+table(variants.df$vep_STRAND, useNA = "always")
+
+# Clean-up
+rm(explore_field.udf)
+```
+
+# Add HWE data to biallelic variants  
+
+using library *HardyWeinberg*  
+
+```{r}
+
+# Prepare genotypes counts
+genotypes_counts <- MakeCounts(t(gt_add.mx),coding=c(0,1,2))
+dim(genotypes_counts)
+genotypes_counts[1:5,]
+
+# Calculate HWE p-values
+hwe <- HWExactStats(genotypes_counts[,1:3], verbose=FALSE)
+names(hwe) <- rownames(gt_add.mx)
+sum(is.na(hwe))
+
+# Remove HWE p from multiallelic variants
+NA -> hwe[variants.df$Multiallelic]
+sum(is.na(hwe))
+
+# Explore HWE p-values
+length(hwe)
+hwe[1:5] 
+min(hwe, na.rm=T)
+max(hwe, na.rm=T)
+
+# Histogram HWE p-values
+hist(hwe)
+
+# Dot-plot HWE p-values
+plot(-log10(hwe), main="- log10 HWE", xlab="Variants")
+abline(h=6, col="red", lty=2)
+
+# Add hwe to variants.df
+dim(variants.df)
+variants.df <- cbind(variants.df, hwe_biallelic=hwe)
+colnames(variants.df)
+
+# Clean-up
+rm(genotypes_counts, hwe)
+
+```
+
+# Remove variants grossly violating HWE
+
+```{r}
+
+# Detect variants violating HWE
+hwe_violators <- variants.df$hwe_biallelic < 1e-6 & !is.na(variants.df$hwe_biallelic)
+sum(hwe_violators)
+
+# Remove HWE violators
+gt_add.mx <- gt_add.mx[!hwe_violators,]
+gt_num.mx <- gt_num.mx[!hwe_violators,]
+gt_chr.mx <- gt_chr.mx[!hwe_violators,]
+
+alt_fraction.mx <- alt_fraction.mx[!hwe_violators,]
+
+dp.mx <- dp.mx[!hwe_violators,]
+gq.mx <- gq.mx[!hwe_violators,]
+
+variants.df <- variants.df[!hwe_violators,]
+
+# Clean-up
+rm(hwe_violators)
+
+```
+
+# Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+
+dim(alt_fraction.mx)
+
+dim(gq.mx)
+dim(dp.mx)
+
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(alt_fraction.mx))
+sum(rownames(gt_add.mx) != rownames(gq.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(alt_fraction.mx))
+sum(colnames(gt_add.mx) != colnames(gq.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save result
+
+```{r}
+
+save.image(file.path(data_folder, "s04_explore_annotations_filter_by_hwe.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

@@ -1,0 +1,285 @@
+---
+title: "Ampliseq wecare only: check samples"
+author: "Alexey Larionov"
+date: "23 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary 
+
+- Explore mean dp, call rate and Ts/Tv per case  
+- Rename gt_add.mx to genotypes.mx  
+- Remove gt_num and dp matrices  
+- The minimal Ts/Tv ratio is 2.  However, some samples had TS/TV >4; and some even >5.  No samples were excluded because of hight Ts/Tv ratio because of possible distortions introduced by ampliseq and relatively low number of variants  
+
+Input and Output data: 3,840 variants x 389 samples (194UBC + 195CBC)  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+setwd(scripts_folder)
+
+# Libraries
+library(stringr) # for str_split (in Ti/Tv check)
+
+# Functions
+source(file.path(scripts_folder, "f01_TsTv_ratio.R"))
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder, "s03_filter_variants_by_call_rate.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+
+```
+
+## Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+dim(dp.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Explore samples
+
+## dp per sample
+
+```{r}
+
+# Calculate mean depth per sample (sor simplicity, dont exclude missed genotypes)
+mean_dp <- apply(dp.mx, 2, mean, na.rm=T)
+
+# Plot mean depth
+plot(mean_dp, main="Mean depth", xlab="Samples", xaxt='n')
+
+quantile(mean_dp)
+
+# Clean-up 
+rm(dp.mx, mean_dp)
+
+```
+
+## call_rates per sample
+
+```{r}
+
+# Function to get call rate
+call_rate.udf <- function(x){sum(!is.na(x))/length(x)}
+
+# Calculate mean depth
+call_rates <- apply(gt_add.mx, 2, call_rate.udf)
+
+# Plot mean depth
+plot(call_rates, main="Call rates", xlab="Samples", xaxt='n')
+
+quantile(call_rates)
+
+# Clean-up (keep low_samples for later use in filtering)
+rm(call_rate.udf, call_rates)
+
+```
+
+## TsTv per sample
+
+Needs stringr and TsTv_ratio udf 
+
+```{r}
+
+TsTv.mx <- matrix(ncol=4,nrow=0)
+colnames(TsTv.mx) <- c("case","TsTv","Ts","Tv")
+
+for(sample in colnames(gt_chr.mx)){
+
+  #sample <- "147_S493_L008" # A standard sample
+  #sample <- "108_S482_L008" # All genotypes are NA: 
+  #   will be excluded later for loq call rate
+  
+  # Initialise result
+  z <- c(NA,NA,NA)
+  
+  # Get vector of genotypes
+  g <- gt_chr.mx[,sample]
+  
+  # If there are at least 100 genotypes
+  if(sum(!is.na(g)) > 100){
+    
+    # Parse genotypes
+    x <- str_split(g[!is.na(g)], "/")
+    y <- t(matrix(unlist(x),nrow=2))
+    
+    # Calculate TsTv
+    Ref <- y[,1]
+    Alt <- y[,2]
+    z <- TsTv_ratio(Ref,Alt)
+    
+  }
+
+  # Write result
+  TsTv.mx <- rbind(TsTv.mx,c(sample,z))
+
+}
+
+# Check result
+dim(TsTv.mx)
+TsTv.mx[1:10,]
+
+# Convert to data frame
+TsTv.df <- as.data.frame(TsTv.mx)
+TsTv.df$TsTv <- as.numeric(TsTv.mx[,2])
+TsTv.df$Ts <- as.numeric(TsTv.mx[,3])
+TsTv.df$Tv <- as.numeric(TsTv.mx[,4])
+str(TsTv.df)
+
+quantile(TsTv.df$TsTv)
+
+# Check cases with NA ratio
+sum(is.na(TsTv.df$TsTv))
+
+# Make TsTv plot
+plot(TsTv.df$TsTv, main="TsTv ratios per sample", 
+     xlab="samples", xaxt='n', ylab="Ts/Tv")
+
+abline(h=2, col="red", lty=2)
+
+# High TsTv samples
+high_score <- TsTv.df$TsTv>4.6 & !is.na(TsTv.df$TsTv)
+sum(high_score)
+high_score_samples <- TsTv.df$case[ high_score ]
+
+x <- which(high_score)
+y <- TsTv.df[high_score,"TsTv"]
+my_labs <- substr(high_score_samples,0,3)
+
+text(x, y, labels=my_labs, cex=0.8, pos=c(3,1,1))
+
+# Examples of normal TsTv samples
+TsTv.df[200:205, ]
+
+# Highest TsTv samples
+TsTv.df[high_score, ]
+
+# Clean-up
+rm(sample, g, x, y, z, Ref, Alt, TsTv_ratio, TsTv.mx, TsTv.df,
+   high_score_samples, high_score, 
+   gt_chr.mx, my_labs)
+
+```
+
+# Rename and remove matrices
+
+```{r}
+
+genotypes.mx <- gt_add.mx
+rm(gt_num.mx,gt_add.mx)
+
+```
+
+# Data summary
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency
+sum(rownames(genotypes.mx) != rownames(variants.df))
+sum(colnames(genotypes.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save data
+
+```{r}
+
+save.image(file.path(data_folder, "s04_check_samples.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

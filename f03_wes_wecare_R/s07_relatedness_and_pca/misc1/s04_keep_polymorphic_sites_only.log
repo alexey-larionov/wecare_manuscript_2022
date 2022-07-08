@@ -1,0 +1,36 @@
+Job id: 29720500
+Allocated node: cpu-e-791
+Wed  7 Oct 12:33:29 BST 2020
+
+Job name: s04_keep_polymorphic_sites_only
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s05_pca
+
+ ------------------ Job progress ------------------ 
+
+Started s04_keep_polymorphic_sites_only
+Wed  7 Oct 12:33:29 BST 2020
+
+Source vcf counts
+
+Number of samples: 336
+Number of SNPs:    230680
+Number of INDELs:  14012
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   244692
+
+Filtering ...
+
+Counts in the vcf file after filtering
+Number of samples: 336
+Number of SNPs:    229292
+Number of INDELs:  13829
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   243121
+
+Done
+Wed  7 Oct 12:35:57 BST 2020
+

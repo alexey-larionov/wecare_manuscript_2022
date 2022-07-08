@@ -1,0 +1,39 @@
+Job id: 10043251
+Job name: s01_hard_filters
+Allocated node: cpu-e-119
+Time: Mon 18 Mar 14:50:41 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s12_hard_filters
+
+------------------ Output ------------------
+
+Hard filters for Ampliseq-NFE
+Mon 18 Mar 14:50:41 GMT 2019
+
+--- Files and folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s12_hard_filters
+
+vqsr_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s11_vqsr/ampliseq_nfe_locID_MAflag_vqsr.vcf
+hf_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s12_hard_filters/ampliseq_nfe_locID_MAflag_vqsr_hf.vcf
+gatk_log: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s12_hard_filters/ampliseq_nfe_locID_MAflag_vqsr_hf.log
+
+--- Tools ---
+
+gatk: /rds/project/erf33/rds-erf33-medgen/tools/gatk/gatk-3.6-0/GenomeAnalysisTK.jar
+java: /rds/project/erf33/rds-erf33-medgen/tools/java/jre1.8.0_40/bin/java
+
+--- Resources ---
+
+ref_genome: /rds/project/erf33/rds-erf33-medgen/resources/gatk_bundle/b37/decompressed/human_g1k_v37.fasta
+targets_interval_list: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s00_targets/ampliseq_targets_b37.interval_list
+
+--- Settings ---
+
+MIN_DP: 7390.0
+
+Applying hard filters ...
+Done
+Mon 18 Mar 14:50:52 GMT 2019
+

@@ -1,0 +1,335 @@
+---
+title: "Filter by variant call rates"
+author: "Alexey Larionov"
+date: "05 Jun 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Remove 66% variants with low call rate (60% variants in NFE and 17% variants in WECARE WES).  
+
+0.85 threshold is selected for consistency with SKAT, which requires at least 85% call rate per variant  
+
+Check call rates (per variant and per sample) before and after filtering.  
+
+0.85 variant call rate is required for **each** NFE and WECARE for comparability of the data  
+Input data: 300,187 variants & 535 samples (172UBC, 165CBC and 198NFE)  
+Output data: 99,885 variants & 535 samples (172UBC, 165CBC and 198NFE)  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s06_qc_filters")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s06_qc_filters")
+
+# Libraries
+library(reshape2)
+library(ggplot2)
+
+# Call rate thresholds 
+min_var_call_rate <- 0.85 # for filtering
+min_sample_call_rate <- 0.5 # for estimate of the future filter effect
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s02_filter_by_alt_fraction.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s06_qc_filters")
+data_folder <- file.path(project_folder,"data","s06_qc_filters")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+table(phenotypes.df$cc,useNA = "always")
+
+```
+
+# Genotypes before filtering
+
+```{r}
+
+# Fraction of NA genotypes
+sum(is.na(genotypes.mx))/(nrow(genotypes.mx)*ncol(genotypes.mx))
+genotypes.mx[1:5,1:5]
+
+```
+
+# Call rates per sample before filtering
+
+```{r}
+
+# Function to calculate call rate
+call_rate.udf <- function(x){1-sum(is.na(x))/length(x)}
+
+# Calculate call rates
+call_rates <- apply(genotypes.mx,2,call_rate.udf)
+
+# Plot
+plot(call_rates, main="WECARE and NFE\nafter Alt-Fraction filtering",
+     ylab="Call rate per sample", xlab="Sample No")
+abline(h=min_sample_call_rate, lty=2, col="red")
+abline(v=198.5, lty=2, col="red")
+
+low_call_rate_indices <- which(call_rates < 0.5)
+low_call_rate_values <- call_rates[low_call_rate_indices]
+low_call_rate_samples <- names(low_call_rate_values)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=4,cex=0.75)
+
+# Clean-up
+rm(call_rates,low_call_rate_indices,
+   low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Call rates per variant before filtering
+
+```{r}
+
+# Make separate gq matrices for nfe and wecare
+genotypes_nfe.mx <- genotypes.mx[,1:198]
+genotypes_wecare.mx <- genotypes.mx[,199:535]
+
+dim(genotypes_nfe.mx)
+dim(genotypes_wecare.mx)
+
+genotypes_nfe.mx[1:5,1:5]
+genotypes_wecare.mx[1:5,1:5]
+
+# Call rates per variant (separately for NFE and WECARE !)
+var_call_rates_nfe <- apply(genotypes_nfe.mx,1,call_rate.udf)
+var_call_rates_wecare <- apply(genotypes_wecare.mx,1,call_rate.udf)
+
+# Prepare data for ggplot hist
+data.df <- data.frame(nfe=var_call_rates_nfe, wecare=var_call_rates_wecare)
+molten.df <- melt(data.df)
+colnames(molten.df) <- c("group","call_rate")
+head(molten.df)
+
+# Make plot
+ggplot(molten.df, aes(x=call_rate, fill=group)) + 
+  geom_histogram(alpha=0.5, bins=15, position="identity", aes(y=..density..)) +
+  geom_vline(xintercept=min_var_call_rate, linetype="dashed", color = "red") +
+  labs(title="WECARE and NFE",
+       subtitle="before variant call rate filtering",
+       x = "Variant call rate", y ="Density")
+
+```
+
+# Define low call rates  
+
+0.85 variant call rate is required for **each** NFE and WECARE for comparability of the data  
+```{r}
+
+# Estimate proportion of variants with low call rate (<85%)
+sum(var_call_rates_nfe < min_var_call_rate)/length(var_call_rates_nfe)
+sum(var_call_rates_wecare < min_var_call_rate)/length(var_call_rates_wecare)
+
+low_var_call_rates <- var_call_rates_nfe < min_var_call_rate | 
+                      var_call_rates_wecare < min_var_call_rate
+sum(low_var_call_rates)/nrow(genotypes.mx)
+
+sum(low_var_call_rates)
+sum(!low_var_call_rates)
+
+# Clean-up
+rm(var_call_rates_nfe, var_call_rates_wecare, data.df, molten.df,
+   genotypes_nfe.mx, genotypes_wecare.mx)
+
+```
+
+
+# Remove variants with low call rates
+
+```{r}
+
+genotypes.mx <- genotypes.mx[!low_var_call_rates,]
+variants.df <- variants.df[!low_var_call_rates,]
+
+# Check result
+dim(genotypes.mx)
+dim(variants.df)
+
+# Clean-up
+rm(low_var_call_rates)
+
+```
+
+# Genotypes after filtering
+
+```{r}
+
+# Fraction of NA genotypes
+sum(is.na(genotypes.mx))/(nrow(genotypes.mx)*ncol(genotypes.mx))
+genotypes.mx[1:5,1:5]
+
+```
+
+# Call rates after filtering
+
+## per variant
+
+0.85 variant call rate is required for **each** NFE and WECARE for comparability of the data  
+
+```{r}
+
+# Make separate gq matrices for nfe and wecare
+genotypes_nfe.mx <- genotypes.mx[,1:198]
+genotypes_wecare.mx <- genotypes.mx[,199:535]
+
+dim(genotypes_nfe.mx)
+dim(genotypes_wecare.mx)
+
+genotypes_nfe.mx[1:5,1:5]
+genotypes_wecare.mx[1:5,1:5]
+
+# Call rates per variant (separately for NFE and WECARE !)
+var_call_rates_nfe <- apply(genotypes_nfe.mx,1,call_rate.udf)
+var_call_rates_wecare <- apply(genotypes_wecare.mx,1,call_rate.udf)
+
+# Prepare data for ggplot hist
+data.df <- data.frame(nfe=var_call_rates_nfe, wecare=var_call_rates_wecare)
+molten.df <- melt(data.df)
+colnames(molten.df) <- c("group","call_rate")
+head(molten.df)
+
+# Make plot
+ggplot(molten.df, aes(x=call_rate, fill=group)) + 
+  geom_histogram(alpha=0.5, bins=15, position="identity", aes(y=..density..)) +
+  geom_vline(xintercept=min_var_call_rate, linetype="dashed", color = "red") +
+  labs(title="WECARE and NFE",
+       subtitle="after variant call rate filtering",
+       x = "Variant call rate", y ="Density")
+
+# Look at minimal variant call rates
+min(var_call_rates_nfe,var_call_rates_nfe)
+var_call_rates_all <- apply(genotypes.mx,1,call_rate.udf)
+min(var_call_rates_all)
+
+# Clean-up
+rm(var_call_rates_nfe, var_call_rates_wecare, data.df, molten.df,
+   genotypes_nfe.mx, genotypes_wecare.mx, var_call_rates_all,
+   min_var_call_rate)
+
+```
+
+## per sample
+
+```{r}
+
+# Calculate call rates
+call_rates <- apply(genotypes.mx,2,call_rate.udf)
+
+# Plot
+plot(call_rates, main="WECARE and NFE\nafter Alt-Fraction filtering",
+     ylab="Call rate per sample", xlab="Sample No")
+abline(h=min_sample_call_rate, lty=2, col="red")
+abline(v=198.5, lty=2, col="red")
+
+low_call_rate_indices <- which(call_rates < 0.85)
+low_call_rate_values <- call_rates[low_call_rate_indices]
+low_call_rate_samples <- names(low_call_rate_values)
+
+text(x=low_call_rate_indices,y=low_call_rate_values,
+     labels=low_call_rate_samples,pos=c(4,4,4,2,4),cex=0.75)
+
+# Clean-up
+rm(call_rates,low_call_rate_indices,call_rate.udf,min_sample_call_rate,
+   low_call_rate_values,low_call_rate_samples)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s03_filter_by_variant_call_rates.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

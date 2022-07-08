@@ -1,0 +1,121 @@
+---
+title: "Select BRCA1/2 and PALB2 carriers"
+author: "Alexey Larionov"
+date: "18 Aug 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Select potential carriers of BRCA1/2 and PALB2  
+Remove Danish samples ?  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s04_select_samples")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s04_select_samples")
+
+# Libraries
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s01_add_phenotypes.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s04_select_samples")
+data_folder <- file.path(project_folder,"data","s04_select_samples")
+
+```
+
+# Check data
+
+Note that phenotypes are not synchronized with other data yet  
+
+```{r}
+
+ls()
+
+dim(full_variants.df)
+
+dim(full_dp.mx)
+dim(full_gq.mx)
+dim(full_gt.mx)
+dim(full_ad.mx)
+
+dim(phenotypes_with_danish.df)
+
+```
+
+```{r}
+
+colnames(phenotypes_with_danish.df)
+
+phenotypes_with_danish.df %>% 
+  group_by(filter) %>% 
+  summarise(n())
+
+carriers.df <- phenotypes_with_danish.df %>% 
+  filter(filter %in% c("BRCA1_carrier","BRCA2_carrier","PALB2_carrier")) %>% 
+  select("wes_id","gwas_id","filter","danish")
+
+write.table(carriers.df,file.path(data_folder,"carriers_wes.txt"),
+            row.names = F, quote = F, sep = "\t")
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

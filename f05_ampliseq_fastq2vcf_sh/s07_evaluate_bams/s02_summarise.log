@@ -1,0 +1,70 @@
+Job id: 9494167
+Job name: s02_summarise
+Allocated node: cpu-e-277
+Time: Fri 15 Feb 17:34:54 GMT 2019
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s07_evaluate_bams
+
+------------------ Output ------------------
+
+Make summary tables and plots for BAMs QC
+Fri 15 Feb 17:34:54 GMT 2019
+
+--- Folders ---
+
+scripts_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/scripts_and_logs/s07_evaluate_bams
+
+bams_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s06_clean_bam/bam
+metrics_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s07_bam_metrics
+
+samtools_metrics_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s07_bam_metrics/samtools
+gatk_metrics_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s07_bam_metrics/gatk
+picard_metrics_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s07_bam_metrics/picard
+qualimap_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/wecare_ampliseq/analysis4/ampliseq_nfe/data_and_results/s07_bam_metrics/qualimap
+
+--- Tools ---
+
+gnuplot: /rds/project/erf33/rds-erf33-medgen/tools/gnuplot/gnuplot-5.0.1/bin/gnuplot
+LiberationSansRegularTTF: /rds/project/erf33/rds-erf33-medgen/tools/fonts/liberation-fonts-ttf-2.00.1/LiberationSans-Regular.ttf
+
+qualimap: /rds/project/erf33/rds-erf33-medgen/tools/qualimap/qualimap_v2.2.1/qualimap
+r_folder: /rds/project/erf33/rds-erf33-medgen/tools/r/R-3.2.0/bin
+
+Detected 541 bam files in the source folder
+
+Made summary table for samtools flagstats
+Made plot for samtools flagstats reads counts
+
+Made gatk flagstat summary table
+Made plot for gatk flagstat read counts
+Made plot for gatk flagstat percent of proper pairs
+
+Made summary table for picard insert sizes
+Made plot for picard insert sizes
+
+Made table for picard alignment summary metrics
+Made plot for picard alignment summary metrics READS_ALIGNED_IN_PAIRS
+Made plot for picard alignment summary metrics PCT_READS_ALIGNED_IN_PAIRS
+Made plot for picard alignment summary metrics MEAN_READ_LENGTH
+Made plot for picard alignment summary metrics PF_INDEL_RATE
+Made plot for picard alignment summary metrics PF_MISMATCH_RATE
+Made plot for picard alignment summary metrics STRAND_BALANCE
+
+Made table for picard targeted pcr metrics
+Made plot for picard pcr targeting metrics PCT_OFF_AMPLICON
+Made plot for picard pcr targeting metrics ZERO_CVG_TARGETS_PCT
+Made plot for picard pcr targeting metrics ZERO_CVG_TARGETS_PCT
+Made plot for picard pcr targeting metrics MEAN_TARGET_COVERAGE
+Made plot for picard pcr targeting metrics MEDIAN_TARGET_COVERAGE
+Made plot for picard pcr targeting metrics HET_SNP_SENSITIVITY
+Made plot for picard pcr targeting metrics PCT_TARGET_BASES_10X
+Made plot for picard pcr targeting metrics PCT_TARGET_BASES_20X
+Made plot for picard pcr targeting metrics PCT_TARGET_BASES_30X
+
+Started multi-sample qualimap
+Completed multi-sample qualimap
+
+Completed all summary tables and plots for BAMs QC
+Fri 15 Feb 17:38:02 GMT 2019
+

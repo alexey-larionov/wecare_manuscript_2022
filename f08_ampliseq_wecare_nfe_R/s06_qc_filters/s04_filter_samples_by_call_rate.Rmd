@@ -1,0 +1,532 @@
+---
+title: "Ampliseq wecare NFFE: filter samples by call rate"
+author: "Alexey Larionov"
+date: "29 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary 
+
+- Remove 1 NFFE sample because of the low call rate (<0.5)  
+- Check for non-polymorphic sites after sample filtering  
+- Explore mean dp, call rate and Ts/Tv per case before andf after sample filtering  
+- Rename gt_add.mx to genotypes.mx  
+- Remove gt_num, gt_char and dp matrices  
+
+Mosr samples have Ts/Tv ratio > 2.  However, some samples had TS/TV 5; and some even >5.  No samples were excluded because of the high Ts/Tv ratio because of possible distortions introduced by ampliseq and relatively low number of variants  
+
+Input data: 1,922 variants x 587 samples (198 NFFE, 194 UBC & 195 CBC)  
+Output data: 1,922 variants x 586 samples (197 NFFE, 194 UBC & 195 CBC)  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+setwd(scripts_folder)
+
+# Libraries
+library(stringr) # for str_split (in Ti/Tv check)
+
+# Functions
+source(file.path(scripts_folder, "f01_TsTv_ratio.R"))
+
+# Set minimal call rate per sample
+min_sample_call_rate <- 0.5
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder, "s03_filter_variants_by_call_rate.RData"))
+
+# Update folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s02_ampliseq_wecare_nfe"
+data_folder <- file.path(base_folder,"data","s06_qc_filters")
+scripts_folder <- file.path(base_folder,"scripts","s06_qc_filters")
+
+```
+
+## Check data
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+dim(dp.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency of rownames and colnames
+
+sum(rownames(gt_add.mx) != rownames(gt_num.mx))
+sum(rownames(gt_add.mx) != rownames(gt_chr.mx))
+sum(rownames(gt_add.mx) != rownames(dp.mx))
+
+sum(colnames(gt_add.mx) != colnames(gt_num.mx))
+sum(colnames(gt_add.mx) != colnames(gt_chr.mx))
+sum(colnames(gt_add.mx) != colnames(dp.mx))
+
+sum(rownames(gt_add.mx) != rownames(variants.df))
+sum(colnames(gt_add.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Explore samples before filtering
+
+## dp per sample
+
+```{r}
+
+# Calculate mean depth per sample (sor simplicity, dont exclude missed genotypes)
+mean_dp <- apply(dp.mx, 2, mean, na.rm=T)
+
+# Plot mean depth
+colnames(dp.mx[,c(389,390)])
+plot(mean_dp, main="Mean depth", xlab="Samples", xaxt='n')
+abline(v=389.5, lty=2, col="red")
+text(c(175,500),200,c("Wecare","NFFE"))
+
+quantile(mean_dp)
+mean(mean_dp)
+
+mean_dp_wecare <- apply(dp.mx[,phenotypes.df$cc!=-1], 2, mean, na.rm=T)
+quantile(mean_dp_wecare)
+mean(mean_dp_wecare)
+
+mean_dp_nffe <- apply(dp.mx[,phenotypes.df$cc==-1], 2, mean, na.rm=T)
+quantile(mean_dp_nffe)
+mean(mean_dp_nffe)
+
+# Clean-up 
+rm(mean_dp,mean_dp_wecare,mean_dp_nffe)
+
+```
+
+## call_rates per sample
+
+```{r}
+
+# Function to get call rate
+call_rate.udf <- function(x){sum(!is.na(x))/length(x)}
+
+# Calculate mean depth
+call_rates <- apply(gt_add.mx, 2, call_rate.udf)
+
+# Plot mean depth
+plot(call_rates, main="Call rates", xlab="Samples", xaxt='n')
+abline(v=389.5, lty=2, col="red")
+text(c(175,500), 0.4 ,c("Wecare","NFFE"))
+abline(h=min_sample_call_rate, lty=2, col="red")
+
+# Low call rate sample(s)
+low_call_rate <- call_rates < min_sample_call_rate
+sum(low_call_rate)
+low_call_rate_samples <- call_rates[ low_call_rate ]
+
+x <- which(low_call_rate)
+y <- low_call_rate_samples
+my_labs <- names(low_call_rate_samples)
+
+text(x, y, labels=my_labs, cex=0.5, pos=3)
+
+# Compare means/quantiles
+quantile(call_rates)
+mean(call_rates)
+
+call_rates_wecare <- apply(gt_add.mx[,phenotypes.df$cc!=-1], 2, call_rate.udf)
+quantile(call_rates_wecare)
+mean(call_rates_wecare)
+
+call_rates_nffe <- apply(gt_add.mx[,phenotypes.df$cc==-1], 2, call_rate.udf)
+quantile(call_rates_nffe)
+mean(call_rates_nffe)
+
+# Clean-up (keep low_samples for later use in filtering)
+rm(call_rate.udf, call_rates_wecare, call_rates_nffe,
+   low_call_rate, low_call_rate_samples,x,y,my_labs)
+
+```
+
+## TsTv per sample
+
+Needs stringr and TsTv_ratio udf 
+
+```{r}
+
+TsTv.mx <- matrix(ncol=4,nrow=0)
+colnames(TsTv.mx) <- c("case","TsTv","Ts","Tv")
+
+for(sample in colnames(gt_chr.mx)){
+
+  #sample <- "147_S493_L008" # A standard sample
+  #sample <- "108_S482_L008" # All genotypes are NA: 
+  #   will be excluded later for loq call rate
+  
+  # Initialise result
+  z <- c(NA,NA,NA)
+  
+  # Get vector of genotypes
+  g <- gt_chr.mx[,sample]
+  
+  # If there are at least 100 genotypes
+  if(sum(!is.na(g)) > 100){
+    
+    # Parse genotypes
+    x <- str_split(g[!is.na(g)], "/")
+    y <- t(matrix(unlist(x),nrow=2))
+    
+    # Calculate TsTv
+    Ref <- y[,1]
+    Alt <- y[,2]
+    z <- TsTv_ratio(Ref,Alt)
+    
+  }
+
+  # Write result
+  TsTv.mx <- rbind(TsTv.mx,c(sample,z))
+
+}
+
+# Check result
+dim(TsTv.mx)
+TsTv.mx[1:10,]
+
+# Convert to data frame
+TsTv.df <- as.data.frame(TsTv.mx)
+TsTv.df$TsTv <- as.numeric(TsTv.mx[,2])
+TsTv.df$Ts <- as.numeric(TsTv.mx[,3])
+TsTv.df$Tv <- as.numeric(TsTv.mx[,4])
+str(TsTv.df)
+
+quantile(TsTv.df$TsTv, na.rm=T)
+
+# Check cases with NA ratio
+sum(is.na(TsTv.df$TsTv))
+TsTv.mx[is.na(TsTv.df$TsTv),]
+
+# Make TsTv plot
+plot(TsTv.df$TsTv, main="TsTv ratios per sample", 
+     xlab="samples", xaxt='n', ylab="Ts/Tv")
+
+abline(h=2, col="red", lty=2)
+abline(h=5, col="red", lty=2)
+
+abline(v=389.5, lty=2, col="red")
+text(c(175,500), 6 ,c("Wecare","NFFE"))
+
+# High TsTv samples
+high_score <- TsTv.df$TsTv>5.5 & !is.na(TsTv.df$TsTv)
+sum(high_score)
+TsTv.df[high_score,]
+
+# Low TsTv samples
+low_score <- TsTv.df$TsTv<2 & !is.na(TsTv.df$TsTv)
+sum(low_score)
+TsTv.df[low_score,]
+
+# Examples of normal TsTv samples
+TsTv.df[200:205, ]
+
+# Clean-up
+rm(sample, g, x, y, z, Ref, Alt, TsTv.mx, TsTv.df,
+   high_score, low_score)
+
+```
+
+# Filter samples by call rate
+
+```{r}
+
+# Filter
+selected_samples <- call_rates >= min_sample_call_rate
+sum(selected_samples)
+
+sum(!selected_samples)
+phenotypes.df$long_ids[!selected_samples]
+
+gt_add.mx <- gt_add.mx[,selected_samples]
+gt_num.mx <- gt_num.mx[,selected_samples]
+gt_chr.mx <- gt_chr.mx[,selected_samples]
+dp.mx <- dp.mx[,selected_samples]
+
+phenotypes.df <- phenotypes.df[selected_samples,] 
+
+# Check result
+dim(gt_add.mx)
+dim(gt_num.mx)
+dim(gt_chr.mx)
+dim(dp.mx)
+
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Clean-up
+rm(selected_samples,call_rates,min_sample_call_rate)
+
+```
+
+# Check non-polymorphic sites
+
+After samples filtering some variant sites may become non-polymorphic
+
+```{r}
+
+# Function to detect uniform numeric vector
+uniformity_check.udf <- function(x){
+  if (all(is.na(x))){"All_NA"}
+  else if (min(x,na.rm=T)==max(x,na.rm=T)){"Uniform"}
+  else {"Non-Uniform"}}
+    
+uniformity_check <- apply(gt_add.mx,1,uniformity_check.udf)
+summary(as.factor(uniformity_check))
+
+# Clean-up
+rm(uniformity_check.udf,uniformity_check)
+
+```
+
+# Explore samples after filtering
+
+## dp per sample
+
+```{r}
+
+# Calculate mean depth per sample (sor simplicity, dont exclude missed genotypes)
+mean_dp <- apply(dp.mx, 2, mean, na.rm=T)
+
+# Plot mean depth
+colnames(dp.mx[,c(389,390)])
+plot(mean_dp, main="Mean depth", xlab="Samples", xaxt='n')
+abline(v=389.5, lty=2, col="red")
+text(c(175,500),200,c("Wecare","NFFE"))
+
+# Compare means/quantiles
+quantile(mean_dp)
+mean(mean_dp)
+
+mean_dp_wecare <- apply(dp.mx[,phenotypes.df$cc!=-1], 2, mean, na.rm=T)
+quantile(mean_dp_wecare)
+mean(mean_dp_wecare)
+
+mean_dp_nffe <- apply(dp.mx[,phenotypes.df$cc==-1], 2, mean, na.rm=T)
+quantile(mean_dp_nffe)
+mean(mean_dp_nffe)
+
+# Clean-up 
+rm(dp.mx, mean_dp,mean_dp_wecare,mean_dp_nffe)
+
+```
+
+## call_rates per sample
+
+```{r}
+
+# Function to get call rate
+call_rate.udf <- function(x){sum(!is.na(x))/length(x)}
+
+# Calculate mean depth
+call_rates <- apply(gt_add.mx, 2, call_rate.udf)
+
+# Plot mean depth
+plot(call_rates, main="Call rates", xlab="Samples", xaxt='n')
+abline(v=389.5, lty=2, col="red")
+text(c(175,500), 0.7 ,c("Wecare","NFFE"))
+
+# Compare means/quantiles
+quantile(call_rates)
+mean(call_rates)
+
+call_rates_wecare <- apply(gt_add.mx[,phenotypes.df$cc!=-1], 2, call_rate.udf)
+quantile(call_rates_wecare)
+mean(call_rates_wecare)
+
+call_rates_nffe <- apply(gt_add.mx[,phenotypes.df$cc==-1], 2, call_rate.udf)
+quantile(call_rates_nffe)
+mean(call_rates_nffe)
+
+# Clean-up (keep low_samples for later use in filtering)
+rm(call_rate.udf, call_rates,call_rates_wecare,call_rates_nffe)
+
+```
+
+## TsTv per sample
+
+Needs stringr and TsTv_ratio udf 
+
+```{r}
+
+TsTv.mx <- matrix(ncol=4,nrow=0)
+colnames(TsTv.mx) <- c("case","TsTv","Ts","Tv")
+
+for(sample in colnames(gt_chr.mx)){
+
+  #sample <- "147_S493_L008" # A standard sample
+  #sample <- "108_S482_L008" # All genotypes are NA: 
+  #   will be excluded later for loq call rate
+  
+  # Initialise result
+  z <- c(NA,NA,NA)
+  
+  # Get vector of genotypes
+  g <- gt_chr.mx[,sample]
+  
+  # If there are at least 100 genotypes
+  if(sum(!is.na(g)) > 100){
+    
+    # Parse genotypes
+    x <- str_split(g[!is.na(g)], "/")
+    y <- t(matrix(unlist(x),nrow=2))
+    
+    # Calculate TsTv
+    Ref <- y[,1]
+    Alt <- y[,2]
+    z <- TsTv_ratio(Ref,Alt)
+    
+  }
+
+  # Write result
+  TsTv.mx <- rbind(TsTv.mx,c(sample,z))
+
+}
+
+# Check result
+dim(TsTv.mx)
+TsTv.mx[1:10,]
+
+# Convert to data frame
+TsTv.df <- as.data.frame(TsTv.mx)
+TsTv.df$TsTv <- as.numeric(TsTv.mx[,2])
+TsTv.df$Ts <- as.numeric(TsTv.mx[,3])
+TsTv.df$Tv <- as.numeric(TsTv.mx[,4])
+str(TsTv.df)
+
+quantile(TsTv.df$TsTv, na.rm=T)
+
+# Check cases with NA ratio
+sum(is.na(TsTv.df$TsTv))
+TsTv.mx[is.na(TsTv.df$TsTv),]
+
+# Make TsTv plot
+plot(TsTv.df$TsTv, main="TsTv ratios per sample", 
+     xlab="samples", xaxt='n', ylab="Ts/Tv")
+
+abline(h=2, col="red", lty=2)
+abline(h=5, col="red", lty=2)
+
+abline(v=389.5, lty=2, col="red")
+text(c(175,500), 6 ,c("Wecare","NFFE"))
+
+# High TsTv samples
+high_score <- TsTv.df$TsTv>5.5 & !is.na(TsTv.df$TsTv)
+sum(high_score)
+TsTv.df[high_score,]
+
+# Low TsTv samples
+low_score <- TsTv.df$TsTv<2 & !is.na(TsTv.df$TsTv)
+sum(low_score)
+TsTv.df[low_score,]
+
+# Examples of normal TsTv samples
+TsTv.df[200:205, ]
+
+# Clean-up
+rm(sample, g, x, y, z, Ref, Alt, TsTv_ratio, TsTv.mx, TsTv.df,
+   high_score, low_score, 
+   gt_chr.mx)
+
+```
+
+# Rename and remove matrices
+
+```{r}
+
+genotypes.mx <- gt_add.mx
+rm(gt_num.mx,gt_add.mx)
+
+```
+
+# Data summary
+
+```{r}
+
+# List objects
+ls()
+
+# Check sizes
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+table(phenotypes.df$cc, useNA = "always")
+
+# Check consistency
+sum(rownames(genotypes.mx) != rownames(variants.df))
+sum(colnames(genotypes.mx) != rownames(phenotypes.df)) 
+
+```
+
+# Save data
+
+```{r}
+
+save.image(file.path(data_folder, "s04_filter_samples_by_call_rate.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

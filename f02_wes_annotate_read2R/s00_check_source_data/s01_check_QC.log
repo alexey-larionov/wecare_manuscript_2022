@@ -1,0 +1,43 @@
+Job id: 28934791
+Allocated node: cpu-e-134
+Sat 19 Sep 16:23:49 BST 2020
+
+Job name: s01_check_QC
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s00_check_source_data
+
+ ------------------ Job progress ------------------ 
+
+Started s01_check_QC: 19Sep2020_16:23:49
+
+vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s00_source_data/wecare_nfe_nov2016_vqsr_shf/wecare_nfe_nov2016_vqsr_shf.vcf
+stats_folder: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s00_source_data/stats
+
+Compressing ...
+Indexing ...
+Extracting header ...
+
+Variant counts:
+
+Number of samples: 710
+Number of SNPs:    327601
+Number of INDELs:  17060
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   343372
+
+Calculating bcfstats...
+
+Making plots...
+Parsing bcftools stats output: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s00_source_data/stats/wecare_nfe_nov2016_vqsr_shf.vchk
+Plotting graphs: python3 plot.py
+Creating PDF: pdflatex summary.tex >plot-vcfstats.log 2>&1
+Finished: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s00_source_data/stats/summary.pdf
+
+--- FILTER ---
+
+ 343372 PASS
+
+Done: 19Sep2020_16:33:21
+

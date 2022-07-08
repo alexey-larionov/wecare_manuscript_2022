@@ -1,0 +1,158 @@
+Job id: 28477751
+Allocated node: cpu-e-17
+Thu 10 Sep 14:06:06 BST 2020
+
+Job name: s06_split_vep
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s02_annotate
+
+ ------------------ Job progress ------------------ 
+
+Started s06_split_vep: 10Sep2020_14:06:06
+
+--- Settings ---
+
+source_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s02_annotate/wecare_nfe_nov2016_vqsr_shf_split_clean_tag_ac_id_clinvar_vep.vcf.gz
+split_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s02_annotate/wecare_nfe_nov2016_vqsr_shf_split_clean_tag_ac_id_clinvar_vep_split.vcf.gz
+rm_vcf: /rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/data/s02_annotate/wecare_nfe_nov2016_vqsr_shf_split_clean_tag_ac_id_clinvar_vep_split_rm.vcf.gz
+
+Splitting VEP field ...
+Removing unsplit CSQ column ...
+
+Number of INFO fields in split rm vep vcf:
+129
+
+List of INFO fields in split rm vep vcf:
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=AS_FilterStatus,Number=A,Type=String,Description="Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.">
+##INFO=<ID=AS_VQSLOD,Number=A,Type=String,Description="For each alt allele, the log odds of being a true variant versus being false under the trained gaussian mixture model">
+##INFO=<ID=AS_culprit,Number=A,Type=String,Description="For each alt allele, the annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out">
+##INFO=<ID=BaseQRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities">
+##INFO=<ID=ClippingRankSum,Number=1,Type=Float,Description="Z-score From Wilcoxon rank sum test of Alt vs. Ref number of hard clipped bases">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth; some reads may have been filtered">
+##INFO=<ID=DS,Number=0,Type=Flag,Description="Were any of the samples downsampled?">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Stop position of the interval">
+##INFO=<ID=ExcessHet,Number=1,Type=Float,Description="Phred-scaled p-value for exact test of excess heterozygosity">
+##INFO=<ID=FS,Number=1,Type=Float,Description="Phred-scaled p-value using Fisher's exact test to detect strand bias">
+##INFO=<ID=HaplotypeScore,Number=1,Type=Float,Description="Consistency of the site with at most two segregating haplotypes">
+##INFO=<ID=InbreedingCoeff,Number=1,Type=Float,Description="Inbreeding coefficient as estimated from the genotype likelihoods per-sample when compared against the Hardy-Weinberg expectation">
+##INFO=<ID=LocID,Number=1,Type=String,Description="Location ID">
+##INFO=<ID=MLEAC,Number=A,Type=Integer,Description="Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed">
+##INFO=<ID=MLEAF,Number=A,Type=Float,Description="Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="RMS Mapping Quality">
+##INFO=<ID=MQRankSum,Number=1,Type=Float,Description="Z-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities">
+##INFO=<ID=MultiAllelic,Number=0,Type=Flag,Description="MultiAllelic Membership">
+##INFO=<ID=NDA,Number=1,Type=Integer,Description="Number of alternate alleles discovered (but not necessarily genotyped) at this site">
+##INFO=<ID=NEGATIVE_TRAIN_SITE,Number=0,Type=Flag,Description="This variant was used to build the negative training set of bad variants">
+##INFO=<ID=POSITIVE_TRAIN_SITE,Number=0,Type=Flag,Description="This variant was used to build the positive training set of good variants">
+##INFO=<ID=QD,Number=1,Type=Float,Description="Variant Confidence/Quality by Depth">
+##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt vs. Ref read position bias">
+##INFO=<ID=SOR,Number=1,Type=Float,Description="Symmetric Odds Ratio of 2x2 contingency table to detect strand bias">
+##INFO=<ID=VQSLOD,Number=1,Type=Float,Description="Log odds of being a true variant versus being false under the trained gaussian mixture model">
+##INFO=<ID=culprit,Number=1,Type=String,Description="The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out">
+##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of samples with data">
+##INFO=<ID=AC_Hom,Number=A,Type=Integer,Description="Allele counts in homozygous genotypes">
+##INFO=<ID=AC_Het,Number=A,Type=Integer,Description="Allele counts in heterozygous genotypes">
+##INFO=<ID=AC_Hemi,Number=A,Type=Integer,Description="Allele counts in hemizygous genotypes">
+##INFO=<ID=MAF,Number=A,Type=Float,Description="Minor Allele frequency">
+##INFO=<ID=HWE,Number=A,Type=Float,Description="HWE test (PMID:15789306); 1=good, 0=bad">
+##INFO=<ID=ExcHet,Number=A,Type=Float,Description="Test excess heterozygosity; 1=good, 0=bad">
+##INFO=<ID=AF_ESP,Number=1,Type=Float,Description="allele frequencies from GO-ESP">
+##INFO=<ID=AF_EXAC,Number=1,Type=Float,Description="allele frequencies from ExAC">
+##INFO=<ID=AF_TGP,Number=1,Type=Float,Description="allele frequencies from TGP">
+##INFO=<ID=ALLELEID,Number=1,Type=Integer,Description="the ClinVar Allele ID">
+##INFO=<ID=CLNDN,Number=.,Type=String,Description="ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB">
+##INFO=<ID=CLNDNINCL,Number=.,Type=String,Description="For included Variant : ClinVar's preferred disease name for the concept specified by disease identifiers in CLNDISDB">
+##INFO=<ID=CLNDISDB,Number=.,Type=String,Description="Tag-value pairs of disease database name and identifier, e.g. OMIM:NNNNNN">
+##INFO=<ID=CLNDISDBINCL,Number=.,Type=String,Description="For included Variant: Tag-value pairs of disease database name and identifier, e.g. OMIM:NNNNNN">
+##INFO=<ID=CLNHGVS,Number=.,Type=String,Description="Top-level (primary assembly, alt, or patch) HGVS expression.">
+##INFO=<ID=CLNREVSTAT,Number=.,Type=String,Description="ClinVar review status for the Variation ID">
+##INFO=<ID=CLNSIG,Number=.,Type=String,Description="Clinical significance for this single variant">
+##INFO=<ID=CLNSIGCONF,Number=.,Type=String,Description="Conflicting clinical significance for this single variant">
+##INFO=<ID=CLNSIGINCL,Number=.,Type=String,Description="Clinical significance for a haplotype or genotype that includes this variant. Reported as pairs of VariationID:clinical significance.">
+##INFO=<ID=CLNVC,Number=1,Type=String,Description="Variant type">
+##INFO=<ID=CLNVCSO,Number=1,Type=String,Description="Sequence Ontology id for variant type">
+##INFO=<ID=CLNVI,Number=.,Type=String,Description="the variant's clinical sources reported as tag-value pairs of database and variant identifier">
+##INFO=<ID=DBVARID,Number=.,Type=String,Description="nsv accessions from dbVar for the variant">
+##INFO=<ID=GENEINFO,Number=1,Type=String,Description="Gene(s) for the variant reported as gene symbol:gene id. The gene symbol and id are delimited by a colon (:) and each pair is delimited by a vertical bar (|)">
+##INFO=<ID=MC,Number=.,Type=String,Description="comma separated list of molecular consequence in the form of Sequence Ontology ID|molecular_consequence">
+##INFO=<ID=ORIGIN,Number=.,Type=String,Description="Allele origin. One or more of the following values may be added: 0 - unknown; 1 - germline; 2 - somatic; 4 - inherited; 8 - paternal; 16 - maternal; 32 - de-novo; 64 - biparental; 128 - uniparental; 256 - not-tested; 512 - tested-inconclusive; 1073741824 - other">
+##INFO=<ID=RS,Number=.,Type=String,Description="dbSNP ID (i.e. rs number)">
+##INFO=<ID=SSR,Number=1,Type=Integer,Description="Variant Suspect Reason Codes. One or more of the following values may be added: 0 - unspecified, 1 - Paralog, 2 - byEST, 4 - oldAlign, 8 - Para_EST, 16 - 1kg_failed, 1024 - other">
+##INFO=<ID=vep_Allele,Number=.,Type=String,Description="The Allele field from INFO/CSQ">
+##INFO=<ID=vep_Consequence,Number=.,Type=String,Description="The Consequence field from INFO/CSQ">
+##INFO=<ID=vep_IMPACT,Number=.,Type=String,Description="The IMPACT field from INFO/CSQ">
+##INFO=<ID=vep_SYMBOL,Number=.,Type=String,Description="The SYMBOL field from INFO/CSQ">
+##INFO=<ID=vep_Gene,Number=.,Type=String,Description="The Gene field from INFO/CSQ">
+##INFO=<ID=vep_Feature_type,Number=.,Type=String,Description="The Feature_type field from INFO/CSQ">
+##INFO=<ID=vep_Feature,Number=.,Type=String,Description="The Feature field from INFO/CSQ">
+##INFO=<ID=vep_BIOTYPE,Number=.,Type=String,Description="The BIOTYPE field from INFO/CSQ">
+##INFO=<ID=vep_EXON,Number=.,Type=String,Description="The EXON field from INFO/CSQ">
+##INFO=<ID=vep_INTRON,Number=.,Type=String,Description="The INTRON field from INFO/CSQ">
+##INFO=<ID=vep_HGVSc,Number=.,Type=String,Description="The HGVSc field from INFO/CSQ">
+##INFO=<ID=vep_HGVSp,Number=.,Type=String,Description="The HGVSp field from INFO/CSQ">
+##INFO=<ID=vep_cDNA_position,Number=.,Type=String,Description="The cDNA_position field from INFO/CSQ">
+##INFO=<ID=vep_CDS_position,Number=.,Type=String,Description="The CDS_position field from INFO/CSQ">
+##INFO=<ID=vep_Protein_position,Number=.,Type=String,Description="The Protein_position field from INFO/CSQ">
+##INFO=<ID=vep_Amino_acids,Number=.,Type=String,Description="The Amino_acids field from INFO/CSQ">
+##INFO=<ID=vep_Codons,Number=.,Type=String,Description="The Codons field from INFO/CSQ">
+##INFO=<ID=vep_Existing_variation,Number=.,Type=String,Description="The Existing_variation field from INFO/CSQ">
+##INFO=<ID=vep_DISTANCE,Number=.,Type=String,Description="The DISTANCE field from INFO/CSQ">
+##INFO=<ID=vep_STRAND,Number=.,Type=String,Description="The STRAND field from INFO/CSQ">
+##INFO=<ID=vep_FLAGS,Number=.,Type=String,Description="The FLAGS field from INFO/CSQ">
+##INFO=<ID=vep_VARIANT_CLASS,Number=.,Type=String,Description="The VARIANT_CLASS field from INFO/CSQ">
+##INFO=<ID=vep_SYMBOL_SOURCE,Number=.,Type=String,Description="The SYMBOL_SOURCE field from INFO/CSQ">
+##INFO=<ID=vep_HGNC_ID,Number=.,Type=String,Description="The HGNC_ID field from INFO/CSQ">
+##INFO=<ID=vep_CANONICAL,Number=.,Type=String,Description="The CANONICAL field from INFO/CSQ">
+##INFO=<ID=vep_MANE,Number=.,Type=String,Description="The MANE field from INFO/CSQ">
+##INFO=<ID=vep_TSL,Number=.,Type=String,Description="The TSL field from INFO/CSQ">
+##INFO=<ID=vep_APPRIS,Number=.,Type=String,Description="The APPRIS field from INFO/CSQ">
+##INFO=<ID=vep_CCDS,Number=.,Type=String,Description="The CCDS field from INFO/CSQ">
+##INFO=<ID=vep_ENSP,Number=.,Type=String,Description="The ENSP field from INFO/CSQ">
+##INFO=<ID=vep_SWISSPROT,Number=.,Type=String,Description="The SWISSPROT field from INFO/CSQ">
+##INFO=<ID=vep_TREMBL,Number=.,Type=String,Description="The TREMBL field from INFO/CSQ">
+##INFO=<ID=vep_UNIPARC,Number=.,Type=String,Description="The UNIPARC field from INFO/CSQ">
+##INFO=<ID=vep_GENE_PHENO,Number=.,Type=String,Description="The GENE_PHENO field from INFO/CSQ">
+##INFO=<ID=vep_NEAREST,Number=.,Type=String,Description="The NEAREST field from INFO/CSQ">
+##INFO=<ID=vep_SIFT,Number=.,Type=String,Description="The SIFT field from INFO/CSQ">
+##INFO=<ID=vep_PolyPhen,Number=.,Type=String,Description="The PolyPhen field from INFO/CSQ">
+##INFO=<ID=vep_DOMAINS,Number=.,Type=String,Description="The DOMAINS field from INFO/CSQ">
+##INFO=<ID=vep_miRNA,Number=.,Type=String,Description="The miRNA field from INFO/CSQ">
+##INFO=<ID=vep_HGVS_OFFSET,Number=.,Type=String,Description="The HGVS_OFFSET field from INFO/CSQ">
+##INFO=<ID=vep_AF,Number=.,Type=Float,Description="The AF field from INFO/CSQ">
+##INFO=<ID=vep_AFR_AF,Number=.,Type=Float,Description="The AFR_AF field from INFO/CSQ">
+##INFO=<ID=vep_AMR_AF,Number=.,Type=Float,Description="The AMR_AF field from INFO/CSQ">
+##INFO=<ID=vep_EAS_AF,Number=.,Type=Float,Description="The EAS_AF field from INFO/CSQ">
+##INFO=<ID=vep_EUR_AF,Number=.,Type=Float,Description="The EUR_AF field from INFO/CSQ">
+##INFO=<ID=vep_SAS_AF,Number=.,Type=Float,Description="The SAS_AF field from INFO/CSQ">
+##INFO=<ID=vep_AA_AF,Number=.,Type=Float,Description="The AA_AF field from INFO/CSQ">
+##INFO=<ID=vep_EA_AF,Number=.,Type=Float,Description="The EA_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_AF,Number=.,Type=Float,Description="The gnomAD_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_AFR_AF,Number=.,Type=Float,Description="The gnomAD_AFR_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_AMR_AF,Number=.,Type=Float,Description="The gnomAD_AMR_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_ASJ_AF,Number=.,Type=Float,Description="The gnomAD_ASJ_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_EAS_AF,Number=.,Type=Float,Description="The gnomAD_EAS_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_FIN_AF,Number=.,Type=Float,Description="The gnomAD_FIN_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_NFE_AF,Number=.,Type=Float,Description="The gnomAD_NFE_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_OTH_AF,Number=.,Type=Float,Description="The gnomAD_OTH_AF field from INFO/CSQ">
+##INFO=<ID=vep_gnomAD_SAS_AF,Number=.,Type=Float,Description="The gnomAD_SAS_AF field from INFO/CSQ">
+##INFO=<ID=vep_MAX_AF,Number=.,Type=Float,Description="The MAX_AF field from INFO/CSQ">
+##INFO=<ID=vep_MAX_AF_POPS,Number=.,Type=String,Description="The MAX_AF_POPS field from INFO/CSQ">
+##INFO=<ID=vep_CLIN_SIG,Number=.,Type=String,Description="The CLIN_SIG field from INFO/CSQ">
+##INFO=<ID=vep_SOMATIC,Number=.,Type=String,Description="The SOMATIC field from INFO/CSQ">
+##INFO=<ID=vep_PHENO,Number=.,Type=String,Description="The PHENO field from INFO/CSQ">
+##INFO=<ID=vep_PUBMED,Number=.,Type=String,Description="The PUBMED field from INFO/CSQ">
+##INFO=<ID=vep_VAR_SYNONYMS,Number=.,Type=String,Description="The VAR_SYNONYMS field from INFO/CSQ">
+##INFO=<ID=vep_MOTIF_NAME,Number=.,Type=String,Description="The MOTIF_NAME field from INFO/CSQ">
+##INFO=<ID=vep_MOTIF_POS,Number=.,Type=String,Description="The MOTIF_POS field from INFO/CSQ">
+##INFO=<ID=vep_HIGH_INF_POS,Number=.,Type=String,Description="The HIGH_INF_POS field from INFO/CSQ">
+##INFO=<ID=vep_MOTIF_SCORE_CHANGE,Number=.,Type=String,Description="The MOTIF_SCORE_CHANGE field from INFO/CSQ">
+##INFO=<ID=vep_TRANSCRIPTION_FACTORS,Number=.,Type=String,Description="The TRANSCRIPTION_FACTORS field from INFO/CSQ">
+##INFO=<ID=vep_CADD_PHRED,Number=.,Type=Float,Description="The CADD_PHRED field from INFO/CSQ">
+##INFO=<ID=vep_CADD_RAW,Number=.,Type=Float,Description="The CADD_RAW field from INFO/CSQ">
+
+Done: 10Sep2020_14:18:34
+

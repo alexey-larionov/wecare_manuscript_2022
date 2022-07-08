@@ -1,0 +1,268 @@
+---
+title: "WES WECARE-NFFE BC11: Impute Weight and Aggregate variants for POLR"
+author: "Alexey Larionov"
+date: "10 Mar 2022"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary  
+
+Perform SKAT-style data pre-processing and aggregation  
+Preprocessing steps done in the following order:  
+
+- Read and check bc8 data  
+- *No need in inverting genotypes* because there is no variants with AFs > 0.5  
+- Impute missed genotypes (2 x total AF = mean genotype, as "fixed" imputation in SKAT)  
+- Weight variants by total AFs (dbeta[AF,1,25], default weight in SKAT, *assumes AF < 0.5* !!!)  
+- Aggregate preprocessed (imputed-weighted) variants in bc11 genes (just summation: as in "burden" SKAT style)  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_2022","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s09_polr")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s09_polr")
+#dir.create(data_folder)
+
+# Load libraries
+library(dplyr)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(project_folder,"data","s08_crude_counts","s03_allele_counts_bc11.RData"))
+
+# Update working folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_2022","wes","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s09_polr")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s09_polr")
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(bc11_variants.df)
+dim(bc11_fiv.df)
+
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+table(phenotypes.df$cc, useNA = "always")
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+```
+
+# Select bc11 genotypes
+
+```{r}
+
+bc11_genotypes.mx <- genotypes.mx[bc11_fiv.df$ID,]
+dim(bc11_genotypes.mx)
+sum(is.na(bc11_genotypes.mx))
+
+```
+
+# Impute missed data
+
+Substitute NA with mean genotype per variant (= duplicated **total** AFs).  
+Equivalent to the "fixed" imputation approach in SKAT (see impute.method parameter for SKAT function).  
+Note: No AFs > 0.5 !!!
+
+```{r}
+
+# Check AFs
+max(bc11_fiv.df$total_af)
+
+# Prepare matrix for output
+bc11_genotypes_imp.mx <- bc11_genotypes.mx
+
+# Fraction of missed data 
+sum(is.na(bc11_genotypes_imp.mx))
+sum(is.na(bc11_genotypes_imp.mx))/
+  (nrow(bc11_genotypes_imp.mx)*ncol(bc11_genotypes_imp.mx))
+
+# Impute missed data
+for(var in 1:nrow(bc11_genotypes_imp.mx)){
+
+    # Get AF
+    af <- bc11_fiv.df[var,"total_af"]
+    
+    # Impute missed genotypes
+    genotypes <- bc11_genotypes_imp.mx[var,]
+    2*af -> genotypes[is.na(genotypes)]
+    genotypes -> bc11_genotypes_imp.mx[var,]
+
+    # Clean-up
+    rm(af, genotypes)
+}
+
+# Explore imputed genotypes
+sum(is.na(bc11_genotypes_imp.mx))
+hist(bc11_genotypes_imp.mx, lab=T, ylim=c(0,9e3))
+hist(bc11_genotypes_imp.mx[bc11_genotypes_imp.mx>0], lab=T, ylim=c(0,210),
+     main="Histogram of genotypes\n(show only imputed and alts)")
+min(bc11_genotypes_imp.mx[bc11_genotypes_imp.mx>0])
+
+# Clean-up
+rm(var)
+
+```
+
+# Weight variants by af
+
+Weight by **total** AF using dbeta(AF,1,25)  
+Similar to the default weighting in SKAT  
+(see parameter weights.beta=c[1,25] for SKAT function)  
+
+```{r}
+
+# Prepare tables for output
+bc11_fiv.df <- data.frame(bc11_fiv.df, weight=NA)
+bc11_genotypes_imp_wt.mx <- bc11_genotypes_imp.mx
+
+# Apply weighting
+for(var in 1:nrow(bc11_genotypes_imp_wt.mx)){
+ 
+  # Calculate weight
+  weight <- dbeta(bc11_fiv.df[var, "total_af"], 1, 25)
+  
+  # Write weight to variants table
+  weight -> bc11_fiv.df[var,"weight"]
+  
+  # Apply weights to genotypes table
+  weight * bc11_genotypes_imp.mx[var,] -> bc11_genotypes_imp_wt.mx[var,]
+  
+  # Clean-up
+  rm(weight)
+
+}
+
+# Explore weights
+sum(is.na(bc11_fiv.df$weight))
+mean(bc11_fiv.df$weight)
+hist(bc11_fiv.df$weight, lab=T, ylim=c(0,15))
+
+# Explore weighted genotypes
+min(bc11_genotypes_imp_wt.mx)
+min(bc11_genotypes_imp_wt.mx[bc11_genotypes_imp_wt.mx>0])
+max(bc11_genotypes_imp_wt.mx)
+
+hist(bc11_genotypes_imp_wt.mx, lab=T, ylim=c(0,9e3))
+hist(bc11_genotypes_imp_wt.mx[bc11_genotypes_imp_wt.mx>0], lab=T, ylim=c(0,210), main="Histogram of genotypes\n(showing only imputed and alts)")
+
+hist(bc11_genotypes_imp_wt.mx[bc11_genotypes_imp_wt.mx>0.5], lab=T, ylim=c(0,15), main="Histogram of genotypes\n(showing only alts)")
+
+# clean-up
+rm(var)
+
+```
+
+# Aggregate imputed weighted genotypes
+
+```{r}
+
+bc11_genotypes_imp_wt_aggregated <- apply(bc11_genotypes_imp_wt.mx,2,sum)
+
+bc11_genotypes_imp_wt_aggregated[1:5]
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+dim(genotypes.mx)
+dim(variants.df)
+dim(phenotypes.df)
+
+table(phenotypes.df$cc, useNA = "always")
+
+dim(bc11_genotypes.mx)
+dim(bc11_genotypes_imp.mx)
+dim(bc11_genotypes_imp_wt.mx)
+
+length(bc11_genotypes_imp_wt_aggregated)
+
+length(bc11_genes)
+
+dim(bc11_fiv.df)
+dim(bc11_variants.df)
+
+# Check consistency of rownames and colnames
+sum(colnames(genotypes.mx) != phenotypes.df$sample.ID)
+sum(rownames(genotypes.mx) != variants.df$ID)
+
+sum(names(bc11_genotypes_imp_wt_aggregated) != phenotypes.df$sample.ID)
+
+```
+
+# Save data
+
+```{r}
+
+save.image(file.path(data_folder, "s01_impute_weight_aggregate_bc11.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

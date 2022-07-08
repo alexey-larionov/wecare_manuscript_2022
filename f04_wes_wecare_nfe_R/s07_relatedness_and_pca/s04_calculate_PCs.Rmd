@@ -1,0 +1,538 @@
+---
+title: "WECARE only PCA"
+author: "AL"
+date: "27/01/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+# Summary
+
+PCA for wecare-only (b37) wes WECARE+NFE dataset w/o Danish:  
+
+- Suggests but not excludes some same outliers as the previous analyses: **P5_E09** and possibly **P6_D05**, P1_C12, P1_D08, P5_E02  
+- Shows no irregularities in PCA analysis  
+- Provides evidence for using top 2 PC-s in regression model  
+
+**To clarify**  
+
+An e-mail was sent to bigsnpr package author:  
+
+- Why U-values (eigenvectors?) are numerically different from PC-s plotted by "scores" plot?  
+- How can I plot lines +/- 6xSD on my "scores" plot?  
+- I use eigenvectors in regression models to correct for population stratification; can I use U-values directly or should I scale it as you do in the "scores" plot?  
+
+The answer was qiock but poorly worded (intended to show off rather than to clarify):  
+https://github.com/privefl/bigstatsr/issues/128#issuecomment-768277757  
+
+**References**  
+
+- Preve 2018 pre-processing  
+- Preve 2020 PCA scripts: https://privefl.github.io/bigsnpr/articles/bedpca.html  
+- https://privefl.github.io/bigsnpr/articles/demo.html  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+
+# Libraries
+library(bigsnpr) # for bed_autoSVD() and bed()
+library(bigutilsr) # for prob_dist() and tukey_mc_up() for outlier detection
+library(hexbin) # for plotting svd loadings
+library(ggplot2)
+library(dplyr)
+
+NCORES <- 1
+#NCORES <- nb_cores() # 2
+
+```
+
+# Read bed-bim-fam file-set
+
+```{r}
+
+# Location of bed file
+bed_file <- file.path(data_folder,"s03_non_related","common_biallelic_autosomal_snps_in_HWE_norel.bed")
+
+# Attach PLINK data to R environment
+wecare.bed <- bed(bed_file) # bigsnpr::bed
+
+# Explore wecare.bed
+wecare.bed
+names(wecare.bed)
+#attributes(wecare.bed)
+#str(wecare.bed)
+#wecare.bed$bedfile
+#wecare.bed$address
+
+# Clean-up
+rm(bed_file)
+
+```
+
+# Phenotypes
+
+```{r}
+
+# Phenotypes from plink
+wecare_fam.df <- wecare.bed$fam
+dim(wecare_fam.df)
+head(wecare_fam.df)
+
+table(wecare_fam.df$affection, useNA = "always")
+
+# Phenotypes from the main dataset file
+load(file.path(project_folder,"data","s06_qc_filters","s04_filter_by_sample_call_rates.RData"))
+rm(genotypes.mx,variants.df)
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s07_relatedness_and_pca")
+data_folder <- file.path(project_folder,"data","s07_relatedness_and_pca")
+
+dim(phenotypes.df)
+str(phenotypes.df)
+
+table(phenotypes.df$cc, useNA = "always")
+table(phenotypes.df$filter, useNA = "always")
+
+#phenotypes.df[phenotypes.df$filter=="eigenvectors_outlier","wes_id"]
+#"Possibly_related_to_P1-D05" -> phenotypes.df[phenotypes.df$wes_id=="P5_C12","filter"]
+
+# Merge fam-file and phenotypes from the main dataset (removing samples that are not in fam-file) 
+joined_phenotypes.df <- left_join(wecare_fam.df, phenotypes.df,
+                                  by=c("sample.ID"="wes_id"))
+dim(joined_phenotypes.df)
+colnames(joined_phenotypes.df)
+
+table(joined_phenotypes.df$filter, useNA = "always")
+table(joined_phenotypes.df$cc, useNA = "always")
+table(joined_phenotypes.df$affection, useNA = "always")
+
+#sum(joined_phenotypes.df$sample.ID == "P5_C12")
+
+# Make sure that dplyr::left_joint hasnt changed the order of samples
+sum(substr(joined_phenotypes.df$merged_id,1,6) != wecare_fam.df$sample.ID,na.rm = T)
+
+# Add column for PCA outliers ?
+joined_phenotypes.df <- data.frame(joined_phenotypes.df, pca_outlier=F)
+
+# Clean-up
+rm(phenotypes.df, wecare_fam.df)
+
+```
+
+# Variants
+
+Data from bed-bim-fam only: explored; is it needed for calculation??
+
+```{r}
+
+# map file
+wecare_map.df <- wecare.bed$map
+dim(wecare_map.df)
+head(wecare_map.df)
+
+# make simple counts 
+wecare_maf.df <- bed_MAF(wecare.bed)
+dim(wecare_maf.df)
+head(wecare_maf.df)
+
+# merge map file with the counts
+joined_variants.df <- cbind(wecare_map.df,wecare_maf.df)
+dim(joined_variants.df)
+head(joined_variants.df)
+
+# Variants with AF(ref) < AF(alt)
+inverted <- joined_variants.df$ac != joined_variants.df$mac
+sum(inverted)
+joined_variants.df[inverted,]
+
+# Clean-up
+rm(wecare_map.df, wecare_maf.df, inverted)
+
+```
+
+# PCA
+
+Could be sequentially repeated if outliers are detected 
+
+## 1st round
+
+Takes care about LD etc.  
+See ?plot.big_SVD for plotting svd objets.  
+
+```{r}
+
+# Get indices of non-outliers in format required by bed_autoSVD
+# (integer indices, indicating row numbers)
+non_outliers1 <- which(!joined_phenotypes.df$pca_outlier)
+length(non_outliers1)
+
+# bigsnpr::bed_autoSVD, Default k = 10
+#using non-outlier samples (ind.row) and all variants (ind.col) 
+#table(wecare.bed$map$chromosome) - if complains abotut non-numeric chromosomes
+wecare.svd1 <- bed_autoSVD(wecare.bed, 
+                          ind.row=non_outliers1, 
+                          ncores = NCORES) 
+
+#ind.col=vars_not_in_LD, 
+
+# Variants not in LD (detected by clumping during autoSVD)
+vars_not_in_LD1 <- attr(wecare.svd1, "subset")
+length(vars_not_in_LD1)
+
+#attributes(wecare.svd)
+str(wecare.svd1)
+
+# Eigenvalues
+length(wecare.svd1$d)
+wecare.svd1$d
+plot(wecare.svd1) # default type="screeplot" see ?plot.big_SVD  
+
+# Loadings
+dim(wecare.svd1$v)
+head(wecare.svd1$v)
+
+# Loadings summary (for PCs from 1 to 10)
+plot(wecare.svd1,type="loadings",loadings=1:10,coeff=0.4)
+
+# Eigenvectors
+dim(wecare.svd1$u)
+head(wecare.svd1$u)
+
+# PCA summary (for PCs from 1 to 10)
+plot(wecare.svd1,type = "scores",scores=1:10,coeff=0.4)
+
+# Calculate a measure of "outlieness"  
+U1 <- wecare.svd1$u
+prob1 <- prob_dist(U1, ncores=NCORES) # bigutilsr::prob_dist
+S1 <- prob1$dist.self / sqrt(prob1$dist.nn)
+tukey_threshold1 <- tukey_mc_up(S1) # bigutilsr::tukey_mc_up
+
+# Outliers
+outliers1 <- S1 >= tukey_threshold1
+sum(outliers1)
+outliers_id1 <- wecare.bed$fam$sample.ID[S1 >= tukey_threshold1]
+outliers_id1
+
+# Histogram by "outlieness" score
+ggplot() +
+  geom_histogram(aes(S1), color = "black", fill = "blue", alpha = 0.3) +
+  theme_bigstatsr() +
+  geom_vline(xintercept=tukey_threshold1, colour="red") +
+  labs(x = "Statistic of outlierness (S)", y = "Frequency (sqrt-scale)")
+
+# Location of outlier(s) in PCA plots
+plot(U1[, 1:2], col = (S1 > tukey_threshold1) + 1, pch = 20)
+plot(U1[, 3:4], col = (S1 > tukey_threshold1) + 1, pch = 20)
+plot(U1[, 5:6], col = (S1 > tukey_threshold1) + 1, pch = 20)
+
+# Add outlier to the phenotypes data frame
+joined_phenotypes.df$pca_outlier <- joined_phenotypes.df$pca_outlier | 
+  joined_phenotypes.df$sample.ID %in% outliers_id1
+
+sum(joined_phenotypes.df$pca_outlier)
+
+# Clean-up
+rm(non_outliers1,U1,prob1,S1,tukey_threshold1,
+   outliers1, wecare.svd1, outliers_id1) #vars_not_in_LD1, 
+
+```
+
+## 2nd round
+
+Re-run w/o previously detected outlier(s)  
+Using previously calculated vars_not_in_LD to speed-up  
+https://privefl.github.io/bigsnpr/articles/bedpca.html  
+
+
+```{r}
+
+# Get indices of non-outliers in format required by bed_autoSVD
+# (integer indices, indicating row numbers)
+non_outliers2 <- which(!joined_phenotypes.df$pca_outlier)
+length(non_outliers2)
+
+# Calculate PCA
+wecare.svd2 <- bed_autoSVD(wecare.bed, 
+                          ind.row=non_outliers2, 
+                          ncores = NCORES) 
+
+# ind.col=vars_not_in_LD1 - removes the outlier 
+
+# Variants not in LD (detected by clumping during autoSVD)
+vars_not_in_LD2 <- attr(wecare.svd2, "subset")
+length(vars_not_in_LD2)
+length(vars_not_in_LD1)
+
+# Explore PCA results
+plot(wecare.svd2)
+plot(wecare.svd2, type = "loadings", loadings=1:10, coeff=0.4)
+plot(wecare.svd2, type = "scores", scores=1:10, coeff=0.4)
+
+# Calculate a measure of "outlieness"  
+U2 <- wecare.svd2$u
+prob2 <- prob_dist(U2, ncores=NCORES) # bigutilsr::prob_dist
+S2 <- prob2$dist.self / sqrt(prob2$dist.nn)
+tukey_threshold2 <- tukey_mc_up(S2) # bigutilsr::tukey_mc_up
+
+# Outliers
+outliers2 <- S2 >= tukey_threshold2
+sum(outliers2)
+#outliers_id2 <- wecare.bed$fam$sample.ID[S2 >= tukey_threshold2]
+#outliers_id2
+
+# Histogram by "outlieness" score
+ggplot() +
+  geom_histogram(aes(S2), color = "black", fill = "blue", alpha = 0.3) +
+  theme_bigstatsr() +
+  geom_vline(xintercept=tukey_threshold2, colour="red") +
+  labs(x = "Statistic of outlierness (S)", y = "Frequency (sqrt-scale)")
+
+# Location of outlier(s) in PCA plots
+#plot(U2[, 1:2], col = (S2 > tukey_threshold2) + 1, pch = 20)
+#plot(U2[, 3:4], col = (S2 > tukey_threshold2) + 1, pch = 20)
+#plot(U2[, 5:6], col = (S2 > tukey_threshold2) + 1, pch = 20)
+
+# Add outlier to the phenotypes data frame
+#joined_phenotypes.df$pca_outlier <- joined_phenotypes.df$pca_outlier | 
+#  joined_phenotypes.df$sample.ID %in% outliers_id2
+
+#sum(joined_phenotypes.df$pca_outlier)
+
+# Clean-up
+rm(non_outliers2,U2,prob2,S2,tukey_threshold2,outliers2,
+   vars_not_in_LD1,vars_not_in_LD2) # vars_not_in_LD2, outliers_id2,wecare.svd2 
+
+```
+
+## 3rd round
+
+**Omitted because of no outliers**  
+
+Re-run w/o previously detected outlier(s)  
+Using previously calculated vars_not_in_LD to speed-up  
+
+https://privefl.github.io/bigsnpr/articles/bedpca.html  
+
+
+```{r eval=F, echo=F}
+
+# Get indices of non-outliers in format required by bed_autoSVD
+# (integer indices, indicating row numbers)
+non_outliers3 <- which(!joined_phenotypes.df$pca_outlier)
+length(non_outliers3)
+
+# Calculate PCA
+wecare.svd3 <- bed_autoSVD(wecare.bed, 
+                          ind.row=non_outliers3, 
+                          ind.col=vars_not_in_LD1, 
+                          ncores = NCORES) 
+
+# Explore PCA result
+plot(wecare.svd3)
+plot(wecare.svd3, type = "loadings", loadings=1:10, coeff=0.4)
+plot(wecare.svd3,type = "scores",scores=1:10,coeff=0.4)
+
+# Calculate a measure of "outlieness"  
+U3 <- wecare.svd3$u
+prob3 <- prob_dist(U3, ncores=NCORES) # bigutilsr::prob_dist
+S3 <- prob3$dist.self / sqrt(prob3$dist.nn)
+tukey_threshold3 <- tukey_mc_up(S3) # bigutilsr::tukey_mc_up
+
+# Outliers
+outliers3 <- S3 >= tukey_threshold3
+sum(outliers3)
+
+# Histogram by "outlieness" score
+ggplot() +
+  geom_histogram(aes(S3), color = "black", fill = "blue", alpha = 0.3) +
+  theme_bigstatsr() +
+  geom_vline(xintercept=tukey_threshold3, colour="red") +
+  labs(x = "Statistic of outlierness (S)", y = "Frequency (sqrt-scale)")
+
+# Clean-up
+# Clean-up
+rm(non_outliers3,U3,prob3,S3,tukey_threshold3,outliers3) # vars_not_in_LD2
+
+```
+
+# Update phenotypes table
+
+```{r}
+
+phenotypes_with_PCs.df <- joined_phenotypes.df[!joined_phenotypes.df$pca_outlier,]
+dim(phenotypes_with_PCs.df)
+
+#eigenvectors.mx <- wecare.svd3$u
+eigenvectors.mx <- wecare.svd2$u
+dim(eigenvectors.mx)
+
+colnames(eigenvectors.mx) <- 
+  c("pc1","pc2","pc3","pc4","pc5","pc6","pc7","pc8","pc9","pc10")
+
+phenotypes_with_PCs.df <- cbind(phenotypes_with_PCs.df, eigenvectors.mx)
+dim(phenotypes_with_PCs.df)
+colnames(phenotypes_with_PCs.df)
+
+# Check consistency with the previous eigenvectors from WES
+sum(is.na((phenotypes_with_PCs.df$eig1_wecare)))
+plot(phenotypes_with_PCs.df$eig1_wecare,
+     phenotypes_with_PCs.df$pc1,main="PC1: new vs old WES")
+plot(phenotypes_with_PCs.df$eig2_wecare,
+     phenotypes_with_PCs.df$pc2,main="PC2: new vs old WES")
+
+# Check consistency with the previous eigenvectors from GWAS
+sum(is.na((phenotypes_with_PCs.df$eig1_gwas)))
+plot(phenotypes_with_PCs.df$eig1_gwas,
+     phenotypes_with_PCs.df$pc1,main="PC1: new WES vs GWAs")
+plot(phenotypes_with_PCs.df$eig2_gwas,
+     phenotypes_with_PCs.df$pc2,main="PC2: new WES vs GWAs")
+
+# Clean-up
+rm(joined_phenotypes.df, eigenvectors.mx) # vars_not_in_LD1
+#somehow close wecare.bed ?
+
+```
+
+# Calculate PC-outliers by SD
+
+P6_D05 and P5_E09 are clear outliers when projected to 1kgp  
+
+## 6x sd
+
+```{r}
+
+sd_threshold <- 6
+
+# PC1 outliers
+pc1 <- phenotypes_with_PCs.df$pc1
+pc1_mean <- mean(pc1)
+pc1_sd  <- sd(pc1)
+lo_pc1 <- pc1 < pc1_mean - sd_threshold * pc1_sd
+hi_pc1 <- pc1 > pc1_mean + sd_threshold * pc1_sd
+
+cat("pc1 lo/hi:",sum(lo_pc1),"/",sum(hi_pc1),"\n")
+
+phenotypes_with_PCs.df$sample.ID[lo_pc1]
+phenotypes_with_PCs.df$sample.ID[hi_pc1]
+
+# PC2 outliers
+pc2 <- phenotypes_with_PCs.df$pc2
+pc2_mean <- mean(pc2)
+pc2_sd  <- sd(pc2)
+lo_pc2 <- pc2 < pc2_mean - sd_threshold * pc2_sd
+hi_pc2 <- pc2 > pc2_mean + sd_threshold * pc2_sd
+
+cat("pc2 lo/hi:",sum(lo_pc2),"/",sum(hi_pc2),"\n")
+
+phenotypes_with_PCs.df$sample.ID[lo_pc2]
+phenotypes_with_PCs.df$sample.ID[hi_pc2]
+
+# PC3 outliers
+pc3 <- phenotypes_with_PCs.df$pc3
+pc3_mean <- mean(pc3)
+pc3_sd  <- sd(pc3)
+lo_pc3 <- pc3 < pc3_mean - sd_threshold * pc3_sd
+hi_pc3 <- pc3 > pc3_mean + sd_threshold * pc3_sd
+
+cat("pc3 lo/hi:",sum(lo_pc3),"/",sum(hi_pc3),"\n")
+
+phenotypes_with_PCs.df$sample.ID[lo_pc3]
+phenotypes_with_PCs.df$sample.ID[hi_pc3]
+
+# Clean-up
+rm(sd_threshold,
+   pc1, pc1_mean, pc1_sd, lo_pc1, hi_pc1,
+   pc2, pc2_mean, pc2_sd, lo_pc2, hi_pc2,
+   pc3, pc3_mean, pc3_sd, lo_pc3, hi_pc3)
+
+```
+
+# Detailed PCA plots
+
+```{r}
+
+plot(wecare.svd2, type = "scores") +
+     aes(color = as.factor(phenotypes_with_PCs.df$affection)) +
+     labs(title = NULL, color = "Case") 
+
+# + geom_hline(pc2_mean ... - sd_threshold * pc2_sd,
+#              linetype="dashed", color = "red")
+
+plot(wecare.svd2, type = "scores", scores=3:4) +
+     aes(color = as.factor(phenotypes_with_PCs.df$affection)) +
+     labs(title = NULL, color = "Case")
+
+plot(wecare.svd2, type = "scores", scores=5:6) +
+     aes(color = as.factor(phenotypes_with_PCs.df$affection)) +
+     labs(title = NULL, color = "Case")
+
+plot(wecare.svd2, type = "scores", scores=7:8) +
+     aes(color = as.factor(phenotypes_with_PCs.df$affection)) +
+     labs(title = NULL, color = "Case")
+
+plot(wecare.svd2, type = "scores", scores=9:10) +
+     aes(color = as.factor(phenotypes_with_PCs.df$affection)) +
+     labs(title = NULL, color = "Case")
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s04_calculate_PCs.RData"))
+save(phenotypes_with_PCs.df,file=file.path(data_folder,"s04_phenotypes_with_PCs.RData"))
+
+```
+
+# End section
+
+```{r}
+
+ls()
+Sys.time()
+gc()
+
+```

@@ -1,0 +1,382 @@
+---
+title: "Ampiseq: Read wecare-nffe VCF to R"
+author: "Alexey Larionov"
+date: "20 Dec 2021"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary  
+
+- Read vcf to R (13,046 variants x 739 samples)  
+- Parse VEP  
+- Recode to additive  
+- Split allelic depth table  
+- Update rownames  
+- Update Multiallelic flag  
+- Split SIFT and Polyphen  
+
+# Start section
+
+<style>
+pre {
+  overflow-x: auto;
+}
+pre code {
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width = 999)
+```
+
+```{r}
+
+# Time stamp
+Sys.time()
+
+# Clenan-up
+rm(list=ls())
+graphics.off()
+
+# Memory
+gc()
+
+# Options
+options(stringsAsFactors = F,
+        warnPartialMatchArgs = T, 
+        warnPartialMatchAttr = T, 
+        warnPartialMatchDollar = T)
+
+# Files and folders
+base_folder="/Users/alexey/Documents/wecare/final_analysis_2021/reanalysis_afterNov2021/ampliseq/s01_ampliseq_wecare_only"
+data_folder <- file.path(base_folder,"data","s03_read_data")
+dir.create(data_folder)
+scripts_folder <- file.path(base_folder,"scripts","s03_read_data")
+setwd(scripts_folder)
+
+# Libraries 
+library(vcfR) # for reading VCF
+library(stringr) # for word (for VEP parsing)
+library(tidyr) # for separate (for VEP parsing)
+library(dplyr) # for renaming AC, AN and AF
+
+```
+
+# Read ampliseq.vcfr  
+
+```{r}
+
+# Source VCF
+vcf_file=file.path(base_folder,"data","s02_annotated_vcf","ampliseq_nfe_locID_MAflag_vqsr_hf_split_clean_tag_ac_id_clinvar_vep_split_rm.vcf.gz")
+
+# Read vcf to vcfr object
+ampliseq.vcfr <- read.vcfR(vcf_file, verbose = F)
+
+# Check result
+ampliseq.vcfr
+
+# Clean-up
+rm(vcf_file)
+
+```
+
+# Extract meta and fixed
+
+```{r}
+
+# Get data from header and fixed columns
+meta_fix <- vcfR2tidy(ampliseq.vcfr, info_only=T)
+    
+# Get data frame with meta-information from vcf header
+meta.df <- meta_fix$meta
+dim(meta.df)
+meta.df
+
+# Get data frame with fixed columns (including parsed INFO, convert tibble to data-frame)
+fixed.df <- as.data.frame(meta_fix$fix)
+dim(fixed.df)
+colnames(fixed.df)
+fixed.df[1:5,1:7]
+
+# Clean-up
+rm(meta_fix)
+
+```
+
+# Check filter column
+
+```{r}
+
+sort(summary(as.factor(fixed.df$FILTER)), decreasing = T)
+sum(fixed.df$FILTER != "PASS")
+
+```
+
+# Rename AC, AN and AF  
+
+to avoid interference with AF/ACs, calculated later after samples filtering  
+
+```{r}
+
+# Rename AC, AN and AF
+fixed.df <- fixed.df %>% 
+  rename(init_AC = AC, init_AN = AN, init_AF = AF)
+
+```
+
+# Recode missed values to NAs in fixed.df  
+
+```{r}
+
+any(fixed.df=="",na.rm = T)
+sum(fixed.df==".",na.rm = T)
+NA -> fixed.df[fixed.df=="."] 
+
+```
+
+# Extract matrices: gt, gq, dp and ad
+
+```{r}
+
+# Genotypes matrix with numeric representation of alleles
+gt_num.mx <- extract.gt(ampliseq.vcfr) # original numeric codes: 0/1, 1/1 etc
+dim(gt_num.mx)
+gt_num.mx[1:5,6:10]
+sum(is.na(gt_num.mx))
+sum(!is.na(gt_num.mx))
+sum(is.na(gt_num.mx)) / (nrow(gt_num.mx)*ncol(gt_num.mx))
+
+# Genotypes matrix with alleles coded as ACGT
+gt_chr.mx <- extract.gt(ampliseq.vcfr, return.alleles = TRUE) # encoded as A/A, T/G etc
+dim(gt_chr.mx)
+gt_chr.mx[1:5,6:10]
+NA -> gt_chr.mx[gt_chr.mx=="."]
+gt_chr.mx[1:5,6:10]
+sum(is.na(gt_chr.mx))
+sum(!is.na(gt_chr.mx))
+sum(is.na(gt_chr.mx)) / (nrow(gt_chr.mx)*ncol(gt_chr.mx))
+
+# dp - missed genotypes may have partially DP=NA and partially zeroe DP?
+dp.mx <- extract.gt(ampliseq.vcfr, element = "DP", as.numeric = TRUE)
+dim(dp.mx)
+dp.mx[1:5,6:10]
+sum(dp.mx==0, na.rm=T)
+sum(is.na(dp.mx))
+( sum(is.na(dp.mx)) + sum(dp.mx==0, na.rm=T) ) / (nrow(dp.mx)*ncol(dp.mx))
+
+# gq - some GQ are missed (= NA) and some genotypes are equivocal (GQ=0)
+# Also: gq is capped by 99
+gq.mx <- extract.gt(ampliseq.vcfr, element = "GQ", as.numeric = TRUE)
+dim(gq.mx)
+gq.mx[1:5,6:10]
+sum(gq.mx==0, na.rm=T)
+sum(sum(gq.mx==0, na.rm=T)) / (nrow(gq.mx)*ncol(gq.mx))
+sum(is.na(gq.mx))
+sum(is.na(gq.mx)) / (nrow(gq.mx)*ncol(gq.mx))
+
+# ad
+ad.mx <- extract.gt(ampliseq.vcfr, element = "AD")
+dim(ad.mx)
+ad.mx[1:5,6:10]
+sum(ad.mx=="0,0", na.rm=T)
+sum(ad.mx==".,.", na.rm=T)
+sum(is.na(ad.mx))
+sum(ad.mx=="0,0", na.rm=T) / (nrow(ad.mx)*ncol(ad.mx))
+
+# Clean-up
+rm(ampliseq.vcfr)
+
+```
+
+# Make additive genotype matrix  
+
+```{r}
+
+#summary(as.factor(gt_num.mx))
+table(gt_num.mx, useNA = "always")
+
+gt_add.mx <- gt_num.mx
+0 -> gt_add.mx[ gt_num.mx == "0/0" ]
+1 -> gt_add.mx[ gt_num.mx == "1/0" ]
+1 -> gt_add.mx[ gt_num.mx == "0/1" ]
+2 -> gt_add.mx[ gt_num.mx == "1/1" ]
+
+#summary(as.factor(gt_add.mx))
+table(gt_add.mx, useNA = "always")
+gt_add.mx[1:5,6:10]
+
+gt_add.mx <- matrix(as.numeric(gt_add.mx),nrow=nrow(gt_add.mx))
+colnames(gt_num.mx) -> colnames(gt_add.mx)
+rownames(gt_num.mx) -> rownames(gt_add.mx)
+
+dim(gt_add.mx)
+gt_add.mx[1:5,6:10]
+
+```
+
+# Split ad (allelic depth) matrix
+
+```{r}
+
+ad.mx[1:5,6:10]
+sum(ad.mx==".,.", na.rm=T)
+sum(is.na(ad.mx))
+".,." -> ad.mx[is.na(ad.mx)]
+sum(ad.mx==".,.", na.rm=T)
+
+ad <- unlist(strsplit(ad.mx,","))
+sum(is.na(ad))
+
+ref <- ad[seq(1,length(ad),2)]
+alt <- ad[seq(2,length(ad),2)]
+
+sum(ref == ".")
+sum(alt == ".")
+
+NA -> ref[ref=="."]
+NA -> alt[alt=="."]
+  
+ref.mx <- matrix(as.integer(ref), nrow=nrow(ad.mx))
+alt.mx <- matrix(as.integer(alt), nrow=nrow(ad.mx))
+
+rownames(ref.mx) <- rownames(ad.mx)
+colnames(ref.mx) <- colnames(ad.mx)
+
+rownames(alt.mx) <- rownames(ad.mx)
+colnames(alt.mx) <- colnames(ad.mx)
+
+ad.mx[1:5,6:10]
+ref.mx[1:5,6:10]
+alt.mx[1:5,6:10]
+gt_add.mx[1:5,6:10]
+gq.mx[1:5,6:10]
+
+rm(ad, ref, alt)
+
+```
+
+# Update multiallelic flag  
+
+This chunk reproduces the code from WES wecare pipeline 01.17:  
+
+- **step** p08_wes_export_txt   
+- **file** r02_check_update_tables_html.Rmd  
+
+Note that MultiAllelic flag, which was set in hpc step  
+s10_joined_genotyping (maxAltAlleles=6),  
+has not been carried over multiallelic variants splitting,  
+along with many other annotations (hpc step s13_split_MA)  
+
+These annotations disappeared in the split variants because of the limitations of GATK  
+LeftAlignAndTrimVariants function that was still used here for compartibility with WES data analysis.  
+
+LocID was lost in multiallelic sites, along with other annotations, during multiallelic variants splitting.  At the same time it should be present in all the non-split sites.  
+
+```{r}
+
+# Check and remove MultiAllelic flag set previously
+summary(as.factor(fixed.df$MultiAllelic))
+fixed.df <- fixed.df %>% select(-MultiAllelic) 
+
+# Make a new Multiallelic flag
+Multiallelic <- is.na(fixed.df$LocID)
+sum(Multiallelic)
+fixed.df <- cbind(fixed.df, Multiallelic)
+#fixed.df <- fixed.df %>% select(-LocID)
+
+# Count number of alleles retained at the multiallelic sites  
+# Note that (i) no more than 6 alleles were recoreded to VCF and 
+# (ii) * alt alleles and alt alleles w/o AC or AN had been removed)
+x <- fixed.df[fixed.df$Multiallelic,]
+y <- paste(x$CHROM, x$POS, x$REF, sep="_")
+z <- table(y)
+table(z) # numbers of alleles retained in multiallelic sites  
+hist(z, ylim=c(0, 1.2*length(z)), labels=TRUE, 
+     main=paste("Multiallelic sites: ", length(y), " of ", length(fixed.df$Multiallelic)))
+
+rm(x,y,z, Multiallelic)
+
+```
+
+# Split SIFT and Polyphen  
+
+```{r}
+
+# Split SIFT
+fixed.df <- 
+  fixed.df %>% 
+  mutate(SIFT_call=sub("\\(.*\\)","",vep_SIFT)) %>% 
+  mutate(SIFT_score=as.numeric(
+    sub(".*\\(","", sub("\\)","",vep_SIFT)))) %>% 
+  select(-vep_SIFT)
+
+# Split PolyPhen
+fixed.df <- 
+  fixed.df %>% 
+  mutate(PolyPhen_call=sub("\\(.*\\)","",vep_PolyPhen)) %>% 
+  mutate(PolyPhen_score=as.numeric(
+    sub(".*\\(","", sub("\\)","",vep_PolyPhen)))) %>% 
+  select(-vep_PolyPhen)
+
+```
+
+# Update rownames
+
+```{r}
+
+# Explore current row names in fixed.df
+fixed.df[1:5,1:5]
+
+# Make new row names for fixed.df
+rownames(fixed.df) <- fixed.df$ID
+fixed.df[1:5,1:5]
+
+# Compare with the row names in genotype matrices
+gt_add.mx[1:5,1:5]
+any(rownames(fixed.df) != rownames(gt_add.mx))
+
+# Check
+fixed.df[1:5,1:7]
+gt_add.mx[1:5,6:10]
+alt.mx[1:5,6:10]
+
+```
+
+# Some common sense checks
+
+```{r}
+
+sum(fixed.df == "true", na.rm = T)
+sum(fixed.df == "", na.rm = T)
+sum(fixed.df == ".", na.rm = T)
+
+colnames(fixed.df)
+
+```
+
+# Save results
+
+```{r save_results}
+
+save.image(file.path(data_folder, "s01_read_vcf_to_r.RData"))
+
+```
+
+# Final section
+
+```{r final_section}
+
+ls()
+sessionInfo()
+Sys.time()
+gc()
+
+```

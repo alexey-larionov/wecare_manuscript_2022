@@ -1,0 +1,258 @@
+---
+title: "Update variants"
+author: "Alexey Larionov"
+date: "30 Jan 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Set proper data types and missingness codes in variants.df table  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s05_update_and_cleaning")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s05_update_and_cleaning")
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(data_folder,"s01_update_genotypes.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s05_update_and_cleaning")
+data_folder <- file.path(project_folder,"data","s05_update_and_cleaning")
+
+```
+
+# Check data
+
+```{r}
+
+ls ()
+
+# Check objects dimentions
+dim(variants.df)
+dim(phenotypes.df)
+dim(genotypes.mx)
+
+dim(dp.mx)
+dim(gq.mx)
+dim(alt_fraction.mx)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(variants.df$ID != rownames(genotypes.mx))
+
+sum(phenotypes.df$wes_id != colnames(gq.mx))
+sum(phenotypes.df$wes_id != colnames(dp.mx))
+sum(phenotypes.df$wes_id != colnames(alt_fraction.mx))
+
+sum(variants.df$ID != rownames(gq.mx))
+sum(variants.df$ID != rownames(dp.mx))
+sum(variants.df$ID != rownames(alt_fraction.mx))
+
+```
+
+# Select fields  
+
+```{r}
+
+colnames(variants.df)
+
+selected_fields <- c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "AC", "AN", "AF", "DP", 
+"DS", "MAF", "HWE", "ALLELEID", "CLNDN", "CLNDNINCL", "CLNDISDB",  "CLNDISDBINCL", 
+"CLNHGVS", "CLNREVSTAT", "CLNSIG", "CLNSIGCONF", "CLNSIGINCL",  "CLNVC", 
+"CLNVCSO", "CLNVI", "DBVARID", "GENEINFO", "MC", "ORIGIN", "RS", "vep_Allele", 
+"vep_Consequence", "vep_IMPACT", "vep_SYMBOL", "vep_Gene", "vep_Feature_type", "vep_Feature", 
+"vep_BIOTYPE", "vep_EXON", "vep_INTRON", "vep_HGVSc", "vep_HGVSp", "vep_cDNA_position", 
+"vep_CDS_position", "vep_Protein_position", "vep_Amino_acids",  "vep_Codons", 
+"vep_Existing_variation", "vep_DISTANCE", "vep_STRAND", "vep_FLAGS", "vep_VARIANT_CLASS", 
+"vep_SYMBOL_SOURCE", "vep_HGNC_ID", "vep_CANONICAL",  
+"vep_CCDS", "vep_ENSP", "vep_SWISSPROT", "vep_TREMBL", "vep_UNIPARC", "vep_GENE_PHENO", 
+"vep_NEAREST", "vep_SIFT", "vep_PolyPhen", "vep_DOMAINS", "vep_miRNA", "vep_HGVS_OFFSET", 
+"vep_AF", "vep_AFR_AF", "vep_AMR_AF", "vep_EAS_AF", "vep_EUR_AF", "vep_SAS_AF", 
+"vep_AA_AF", "vep_EA_AF", "vep_gnomAD_AF", "vep_gnomAD_AFR_AF", "vep_gnomAD_AMR_AF", 
+"vep_gnomAD_ASJ_AF", "vep_gnomAD_EAS_AF", "vep_gnomAD_FIN_AF", "vep_gnomAD_NFE_AF", 
+"vep_gnomAD_OTH_AF", "vep_gnomAD_SAS_AF", "vep_MAX_AF", "vep_MAX_AF_POPS", "vep_CLIN_SIG", 
+"vep_PHENO", "vep_PUBMED", "vep_VAR_SYNONYMS", "vep_MOTIF_NAME", "vep_MOTIF_POS", 
+"vep_HIGH_INF_POS", "vep_MOTIF_SCORE_CHANGE", "vep_TRANSCRIPTION_FACTORS", "vep_CADD_PHRED", 
+"vep_CADD_RAW")
+
+# Keep selected fields only
+dim(variants.df)
+variants.df <- variants.df[,selected_fields]
+dim(variants.df)
+
+# Clean-up
+rm(selected_fields)
+
+```
+
+# Check and correct missed data codes
+
+```{r}
+
+# Check possible missing data codes
+sum(is.na(variants.df))
+sum(variants.df=="",na.rm=T)
+sum(variants.df==".",na.rm=T)
+
+# Count NA-s per field
+num_na <- function(x){sum(is.na(x))}
+x <- apply(variants.df,2,num_na)
+x[x>0]
+
+# Count dots per field
+num_dots <- function(x){sum(x==".",na.rm=T)}
+x <- apply(variants.df,2,num_dots)
+x[x>0]
+
+# Change dots to NA-s
+NA -> variants.df[variants.df=="."]
+
+# Check fields with all-NA
+all_na <- function(x){all(is.na(x))}
+x <- apply(variants.df,2,all_na)
+x[x>0]
+
+# Clean-up
+rm(x,num_na,num_dots,all_na)
+
+```
+
+# Update field types
+
+```{r}
+
+str(variants.df) 
+
+variants.df$AC <- as.integer(variants.df$AC)
+
+variants.df$AF <- as.numeric(variants.df$AF)
+variants.df$MAF <- as.numeric(variants.df$MAF)
+variants.df$HWE <- as.numeric(variants.df$HWE)
+
+variants.df$ALLELEID <- as.integer(variants.df$ALLELEID)
+variants.df$vep_STRAND <- as.integer(variants.df$vep_STRAND)
+
+variants.df$vep_AF <- as.numeric(variants.df$vep_AF)
+variants.df$vep_AFR_AF <- as.numeric(variants.df$vep_AFR_AF)
+variants.df$vep_AMR_AF <- as.numeric(variants.df$vep_AMR_AF)
+variants.df$vep_EAS_AF <- as.numeric(variants.df$vep_EAS_AF)
+variants.df$vep_EUR_AF <- as.numeric(variants.df$vep_EUR_AF)
+variants.df$vep_SAS_AF <- as.numeric(variants.df$vep_SAS_AF)
+
+variants.df$vep_AA_AF <- as.numeric(variants.df$vep_AA_AF)
+variants.df$vep_EA_AF <- as.numeric(variants.df$vep_EA_AF)
+
+variants.df$vep_gnomAD_AF <- as.numeric(variants.df$vep_gnomAD_AF)
+variants.df$vep_gnomAD_AFR_AF <- as.numeric(variants.df$vep_gnomAD_AFR_AF)
+variants.df$vep_gnomAD_AMR_AF <- as.numeric(variants.df$vep_gnomAD_AMR_AF)
+variants.df$vep_gnomAD_ASJ_AF <- as.numeric(variants.df$vep_gnomAD_ASJ_AF)
+variants.df$vep_gnomAD_EAS_AF <- as.numeric(variants.df$vep_gnomAD_EAS_AF)
+variants.df$vep_gnomAD_FIN_AF <- as.numeric(variants.df$vep_gnomAD_FIN_AF)
+variants.df$vep_gnomAD_NFE_AF <- as.numeric(variants.df$vep_gnomAD_NFE_AF)
+variants.df$vep_gnomAD_OTH_AF <- as.numeric(variants.df$vep_gnomAD_OTH_AF)
+variants.df$vep_gnomAD_SAS_AF <- as.numeric(variants.df$vep_gnomAD_SAS_AF)
+variants.df$vep_MAX_AF <- as.numeric(variants.df$vep_MAX_AF)
+
+variants.df$vep_CADD_PHRED <- as.numeric(variants.df$vep_CADD_PHRED)
+variants.df$vep_CADD_RAW <- as.numeric(variants.df$vep_CADD_RAW)
+
+#ORIGIN, RS, vep_HGNC_ID, vep_HGVS_OFFSET, vep_MOTIF_POS int?
+#vep_CANONICAL logical?
+
+str(variants.df)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+dim(dp.mx)
+dim(gq.mx)
+dim(alt_fraction.mx)
+
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(phenotypes.df$wes_id != colnames(gq.mx))
+sum(phenotypes.df$wes_id != colnames(dp.mx))
+sum(phenotypes.df$wes_id != colnames(alt_fraction.mx))
+
+sum(variants.df$ID != rownames(genotypes.mx))
+sum(variants.df$ID != rownames(gq.mx))
+sum(variants.df$ID != rownames(dp.mx))
+sum(variants.df$ID != rownames(alt_fraction.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s02_update_variants.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```

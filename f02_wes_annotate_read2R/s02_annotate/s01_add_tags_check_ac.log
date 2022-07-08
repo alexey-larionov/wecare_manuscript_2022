@@ -1,0 +1,37 @@
+Job id: 28358444
+Allocated node: cpu-e-1
+Mon  7 Sep 21:02:08 BST 2020
+
+Job name: s01_add_tags_check_ac
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s02_annotate
+
+ ------------------ Job progress ------------------ 
+
+Started s02_clean: 07Sep2020_21:02:08
+
+Variant counts:
+
+Number of samples: 710
+Number of SNPs:    329394
+Number of INDELs:  26518
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   355912
+
+Adding tags ...
+
+Removing variants with AC==0 ...
+
+Counts after removing variants with AC=0: 
+
+Number of samples: 710
+Number of SNPs:    327060
+Number of INDELs:  16764
+Number of MNPs:    0
+Number of others:  0
+Number of sites:   343824
+
+Done: 07Sep2020_21:10:07
+

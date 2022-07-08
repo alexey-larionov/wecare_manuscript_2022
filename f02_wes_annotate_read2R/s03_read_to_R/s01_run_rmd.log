@@ -1,0 +1,99 @@
+Job id: 30331321
+Allocated node: cpu-e-827
+Sat 24 Oct 18:32:33 BST 2020
+
+Job name: s01_run_rmd
+
+Initial working folder:
+/rds/project/erf33/rds-erf33-medgen/users/alexey/wecare/reanalysis_wo_danish_2020/scripts/s03_read_to_R
+
+ ------------------ Job progress ------------------ 
+
+Started s01_run_rmd: 24Oct2020_18:32:33
+
+
+R version 3.6.3 (2020-02-29) -- "Holding the Windsock"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library('rmarkdown'); render('s01_import_vcf_to_R.Rmd');
+
+
+processing file: s01_import_vcf_to_R.Rmd
+  |                                                                              |                                                                      |   0%  |                                                                              |....                                                                  |   6%
+  ordinary text without R code
+
+  |                                                                              |........                                                              |  11%
+label: unnamed-chunk-1 (with options) 
+List of 1
+ $ echo: symbol F
+
+  |                                                                              |............                                                          |  17%
+  ordinary text without R code
+
+  |                                                                              |................                                                      |  22%
+label: unnamed-chunk-2
+  |                                                                              |...................                                                   |  28%
+  ordinary text without R code
+
+  |                                                                              |.......................                                               |  33%
+label: unnamed-chunk-3
+  |                                                                              |...........................                                           |  39%
+  ordinary text without R code
+
+  |                                                                              |...............................                                       |  44%
+label: unnamed-chunk-4
+  |                                                                              |...................................                                   |  50%
+  ordinary text without R code
+
+  |                                                                              |.......................................                               |  56%
+label: unnamed-chunk-5
+  |                                                                              |...........................................                           |  61%
+  ordinary text without R code
+
+  |                                                                              |...............................................                       |  67%
+label: unnamed-chunk-6
+  |                                                                              |...................................................                   |  72%
+  ordinary text without R code
+
+  |                                                                              |......................................................                |  78%
+label: unnamed-chunk-7
+  |                                                                              |..........................................................            |  83%
+  ordinary text without R code
+
+  |                                                                              |..............................................................        |  89%
+label: unnamed-chunk-8
+  |                                                                              |..................................................................    |  94%
+  ordinary text without R code
+
+  |                                                                              |......................................................................| 100%
+label: unnamed-chunk-9
+
+output file: s01_import_vcf_to_R.knit.md
+
+
+ *** caught segfault ***
+address 0xfffffffffbdb0318, cause 'memory not mapped'
+
+Traceback:
+ 1: yaml::yaml.load(..., eval.expr = TRUE)
+ 2: yaml_load(front_matter)
+ 3: parse_yaml_front_matter(read_utf8(input))
+ 4: yaml_front_matter(input)
+ 5: render("s01_import_vcf_to_R.Rmd")
+An irrecoverable exception occurred. R is aborting now ...
+/var/spool/slurm/slurmd/job30331321/slurm_script: line 62: 77912 Segmentation fault      R -e "library('rmarkdown'); render('s01_import_vcf_to_R.Rmd');"

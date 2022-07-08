@@ -1,0 +1,281 @@
+---
+title: "Update genotypes"
+author: "Alexey Larionov"
+date: "30 Jan 2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+editor_options:
+  chunk_output_type: console
+---
+
+# Summary
+
+Update the names of tables: remove prefix "selected_"
+
+Make additional matrices:  
+
+- Additively encoded genotypes  
+- Alt fractions  
+
+<style>
+pre{
+  overflow-x: auto;
+}
+pre code{
+  word-wrap: normal;
+  white-space: pre;
+}
+</style>
+
+```{r echo=F}
+options(width=999)
+```
+
+# Start section
+
+```{r}
+
+# Time
+Sys.time()
+
+# Memory
+gc()
+
+# Clean up
+rm(list=ls())
+graphics.off()
+
+# Options
+options(stringsAsFactors = F)
+
+# Folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s05_update_and_cleaning")
+setwd(scripts_folder)
+data_folder <- file.path(project_folder,"data","s05_update_and_cleaning")
+#dir.create(data_folder)
+
+```
+
+# Load data
+
+```{r}
+
+load(file.path(project_folder,"data","s04_select_samples","s02_select_samples.RData"))
+
+# Update folders
+base_folder <- "/Users/alexey/Documents"
+project_folder <- file.path(base_folder,"wecare","final_analysis_2021","reanalysis_wo_danish_2021","s02_wes_wecare_nfe")
+scripts_folder <- file.path(project_folder,"scripts","s05_update_and_cleaning")
+data_folder <- file.path(project_folder,"data","s05_update_and_cleaning")
+
+```
+
+# Rename data
+
+```{r}
+
+ls()
+
+# Rename
+variants.df <- selected_variants.df
+phenotypes.df <- selected_phenotypes.df
+
+gt.mx <- selected_gt.mx
+
+dp.mx <- selected_dp.mx
+gq.mx <- selected_gq.mx
+ad.mx <- selected_ad.mx
+
+# Clean-up
+rm(selected_variants.df, selected_phenotypes.df, selected_dp.mx,
+   selected_gq.mx, selected_gt.mx, selected_ad.mx)
+
+```
+
+# Check data
+
+```{r}
+
+ls ()
+
+# Check objects dimentions
+dim(variants.df)
+dim(phenotypes.df)
+
+dim(gt.mx)
+
+dim(dp.mx)
+dim(gq.mx)
+dim(ad.mx)
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(gt.mx))
+sum(phenotypes.df$wes_id != colnames(gq.mx))
+sum(phenotypes.df$wes_id != colnames(dp.mx))
+sum(phenotypes.df$wes_id != colnames(ad.mx))
+
+sum(variants.df$ID != rownames(gt.mx))
+sum(variants.df$ID != rownames(gq.mx))
+sum(variants.df$ID != rownames(dp.mx))
+sum(variants.df$ID != rownames(ad.mx))
+
+```
+
+# Additive encoding of genotypes  
+
+```{r}
+
+# Check the original gt matrix
+gt.mx[1:5,1:5]
+unique(as.vector(gt.mx))
+table(gt.mx, useNA="always")
+
+# Make matrix of NA for additive genotyoes
+genotypes.mx <- matrix(NA,nrow=nrow(gt.mx),ncol=ncol(gt.mx))
+colnames(genotypes.mx) <- colnames(gt.mx)
+rownames(genotypes.mx) <- rownames(gt.mx)
+
+# Populate the matrix with additive genotypes
+0 -> genotypes.mx[ gt.mx == "0/0" ]
+#1 -> genotypes.mx[ gt.mx == "1/0" ]
+1 -> genotypes.mx[ gt.mx == "0/1" ]
+2 -> genotypes.mx[ gt.mx == "1/1" ]
+
+# Check result
+dim(genotypes.mx)
+genotypes.mx[1:5,1:5]
+unique(as.vector(genotypes.mx))
+table(genotypes.mx, useNA="always")
+
+# Clean-up
+rm(gt.mx)
+
+```
+
+# Split ad (allelic depth) matrix
+
+```{r}
+
+# Check the source ad matrix
+# (attention should be paid to NA-s and ./. issue, if present)
+ad.mx[1:5,1:5]
+sum(is.na(ad.mx))
+sum(ad.mx==".,.", na.rm=T)
+".,." -> ad.mx[is.na(ad.mx)]
+sum(ad.mx==".,.", na.rm=T)
+
+# Extract data from ad.mx to a vector
+# (keep paying attention to the possible NA issue)
+ad <- unlist(strsplit(ad.mx,","))
+sum(is.na(ad))
+
+# Extract ref and alt data to separate vectors
+ref <- ad[seq(1,length(ad),2)]
+alt <- ad[seq(2,length(ad),2)]
+
+# Keep an eye to the possible NA ./. issue
+sum(ref == ".")
+sum(alt == ".")
+NA -> ref[ref=="."]
+NA -> alt[alt=="."]
+
+# Make matrices with ref and alt
+ref.mx <- matrix(as.integer(ref), nrow=nrow(ad.mx))
+rownames(ref.mx) <- rownames(ad.mx)
+colnames(ref.mx) <- colnames(ad.mx)
+
+alt.mx <- matrix(as.integer(alt), nrow=nrow(ad.mx))
+rownames(alt.mx) <- rownames(ad.mx)
+colnames(alt.mx) <- colnames(ad.mx)
+
+# Check results
+genotypes.mx[1:5,1:5]
+gq.mx[1:5,1:5]
+
+ad.mx[1:5,1:5]
+ref.mx[1:5,1:5]
+alt.mx[1:5,1:5]
+
+# Clean-up
+rm(ad, ref, alt)
+
+```
+
+# Make Alt Fraction matrix
+
+```{r}
+
+# Calculate Alt Fraction matrix
+sum.mx <- ref.mx + alt.mx
+sum(sum.mx == 0, na.rm=T) # 0/0 = NaN
+alt_fraction.mx <- alt.mx / sum.mx 
+alt_fraction.mx[1:5,1:5]
+
+# Change NaN to NA (NaN has been placed for 0/0)
+sum(is.na(alt_fraction.mx))
+sum(is.nan(alt_fraction.mx))
+sum(ad.mx == "0,0")
+8401611-8401419
+NA -> alt_fraction.mx[is.nan(alt_fraction.mx)]
+sum(is.na(alt_fraction.mx))
+sum(is.nan(alt_fraction.mx))
+alt_fraction.mx[1:5,1:5]
+
+# Note: sum.mx is not always equal to dp.mx
+sum(sum.mx != dp.mx, na.rm=T)/(nrow(dp.mx)*ncol(dp.mx))
+
+# Clean-up
+rm(sum.mx, ad.mx, ref.mx, alt.mx)
+
+```
+
+# Check data
+
+```{r}
+
+ls()
+
+# Check objects dimentions
+dim(genotypes.mx)
+dim(phenotypes.df)
+dim(variants.df)
+
+dim(dp.mx)
+dim(gq.mx)
+dim(alt_fraction.mx)
+
+
+# Check that the tables and matrices are in sync
+sum(phenotypes.df$wes_id != colnames(genotypes.mx))
+sum(phenotypes.df$wes_id != colnames(gq.mx))
+sum(phenotypes.df$wes_id != colnames(dp.mx))
+sum(phenotypes.df$wes_id != colnames(alt_fraction.mx))
+
+sum(variants.df$ID != rownames(genotypes.mx))
+sum(variants.df$ID != rownames(gq.mx))
+sum(variants.df$ID != rownames(dp.mx))
+sum(variants.df$ID != rownames(alt_fraction.mx))
+
+```
+
+# Save results
+
+```{r}
+
+save.image(file.path(data_folder,"s01_update_genotypes.RData"))
+
+```
+
+# Final section
+
+```{r}
+
+sessionInfo()
+Sys.time()
+gc()
+
+```
