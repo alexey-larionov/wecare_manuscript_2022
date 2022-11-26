@@ -9,5 +9,8 @@ For clarity, the provided scripts do not include
 - concordance checks with GWAS data  
 - processing Non-Finnish Female Europeans from FASTQ to gVCF (done by EF and involves publicly available 1KGP data only)  
 
+The conceptual approach to analysis was outlined in this lecture: 
+https://embl-ebi.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=67d6d21c-097e-4724-9e04-ae3900aab6c5 
+
 Alexey Larionov
 08Jul2022
