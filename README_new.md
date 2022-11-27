@@ -4,9 +4,9 @@ Alexey Larionov 27 Nov 2022
 
 # Contents
 
-[1 Overview 1](#_Toc120455610)
+[1 Overview 1](#1-overview)
 
-[2 WES data analysis 2](#_Toc120455611)
+[2 WES data analysis 2](#2-wes-data-analysis)
 
 [2.1 From FASTQ to VCF 2](#_Toc120455612)
 
