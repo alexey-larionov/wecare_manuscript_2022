@@ -1,0 +1,22 @@
+# AL30Dec2021
+
+# References
+https://genome.sph.umich.edu/wiki/METAL_Documentation
+http://csg.sph.umich.edu/abecasis/publications/pdf/Bioinformatics.vol.26-pp.2190.pdf
+
+# Calculate effective numbers for different counts of cases and controls (as recommended in the manuscript)
+n_eff <- 4 / (1/cases_num + 1/controls_num)
+
+# Prepare the data files (wes.txt and ampliseq.txt) and script (metal.txt)
+
+# Go to the folder with script (metal.txt) and data files (wes.txt and ampliseq.txt)
+cd /Users/alexey/Documents/wecare/reanalysis_2022/metaanalysis
+
+# Run analysis (assuming that metal tool is installed)
+metal metal.txt &> metal.log
+
+# The results are in
+METAANALYSIS1.TBL
+
+Additional information is in
+METAANALYSIS1.TBL.info & metal.log

@@ -1,0 +1,10 @@
+MARKER        gene
+ALLELE        a1 a2
+PVALUE        pval
+EFFECT        eff
+WEIGHTLABEL     n
+ 
+PROCESS      wes.txt
+PROCESS      ampliseq.txt
+ 
+ANALYZE

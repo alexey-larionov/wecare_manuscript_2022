@@ -1,0 +1,2 @@
+MarkerName	Allele1	Allele2	Weight	Zscore	P-value	Direction	HetISq	HetChiSq	HetDf	HetPVal
+bc	a	c	723.76	2.722	0.006494	++	67.6	3.086	1	0.07899
