@@ -42,7 +42,7 @@ The conceptual approach to the statistical aspects of analysis (using SKAT libra
 
 [https://embl-ebi.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=67d6d21c-097e-4724-9e04-ae3900aab6c5](https://embl-ebi.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=67d6d21c-097e-4724-9e04-ae3900aab6c5)
 
-The remaining part of this document provides more details about main steps of analysis and describes the content of selected scripts.
+The remaining part of this document provides more details about the main steps of analysis and describes the content of selected scripts.
 
 # 2. WES data analysis
 
