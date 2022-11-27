@@ -4,13 +4,13 @@ Alexey Larionov 27 Nov 2022
 
 # Contents
 
-[1 Overview 1](#1-overview)
+[1 Overview](#1-overview)
 
-[2 WES data analysis 2](#2-wes-data-analysis)
+[2 WES data analysis](#2-wes-data-analysis)
 
-[2.1 From FASTQ to VCF 2](#_Toc120455612)
+[2.1 From FASTQ to VCF](#21-from-fastq-to-vcf)
 
-[2.1.1 Parallel execution on HPC cluster 3](#_Toc120455613)
+[2.1.1 Parallel execution on HPC cluster](#211-parallel-execution-on-hpc-cluster)
 
 [2.1.2 Lane alignment and qc 3](#_Toc120455614)
 
